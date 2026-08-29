@@ -1,7 +1,7 @@
 /* Fitlog Service Worker (배포용, 루트 평평 구조)
  * 앱 파일 수정/재배포 시 CACHE_VERSION을 올려 캐시 갱신.
  */
-const CACHE_VERSION = "fitlog-v1";
+const CACHE_VERSION = "fitlog-v2";
 const APP_SHELL = [
   "./",
   "./index.html",

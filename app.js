@@ -247,7 +247,7 @@ const App = {
   stepper(input, step, unit) {
     return el("div", { class: "stepper" }, [
       el("button", { type: "button", onclick: () => this.bump(input, -step, 0) }, "−"),
-      input, el("span", { class: "unit", text: unit }),
+      el("div", { class: "stepper-mid" }, [input, el("span", { class: "unit", text: unit })]),
       el("button", { type: "button", onclick: () => this.bump(input, step, 0) }, "+"),
     ]);
   },

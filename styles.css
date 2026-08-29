@@ -263,3 +263,20 @@ input { font-family: inherit; }
 .ai-action { font-size: 11px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); padding: 2px 7px; border-radius: 999px; }
 .ai-change-diff { color: var(--accent); font-size: 14px; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .ai-reason { color: var(--text-dim); font-size: 13px; margin-top: 3px; }
+
+/* ===== 아이폰 실기 수정: 스텝퍼 잘림 / 탭바 하단 고정 ===== */
+
+/* 문서가 화면보다 짧아도 화면 전체를 채워서 fixed 탭바가 화면 맨 아래에 고정되게 */
+html { height: 100%; }
+body { min-height: 100vh; min-height: 100dvh; }
+
+/* 스텝퍼: 숫자+단위를 한 칸으로 묶고, +/- 버튼 폭을 줄여 숫자 공간 확보 */
+.stepper { grid-template-columns: 46px 1fr 46px; }
+.set-row { grid-template-columns: 26px 1fr 1fr; gap: 7px; }
+.stepper-mid { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px; padding: 0 6px; min-width: 0; }
+.stepper-mid input { width: 100%; min-width: 0; text-align: right; font-size: 17px; padding: 0; }
+.stepper .unit { font-size: 11px; }
+/* 워밍업 행은 자체 4열 유지(삭제 버튼 포함) */
+.set-row.warmup { grid-template-columns: 22px 1fr 1fr 36px; gap: 6px; }
+/* 유산소 카드는 단위 숨기고 넉넉한 폭 유지 */
+.card.cardio .stepper-mid { grid-template-columns: 1fr; }
