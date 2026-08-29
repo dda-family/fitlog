@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover: 하단 Safe Area 대응 (UX_SPEC §19) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#111318" />
+  <title>Fitlog</title>
+
+  <!-- iOS 홈 화면 PWA 메타 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fitlog" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- 상단 고정 타이머 (타이머 동작 시에만 표시) — UX_SPEC §4.2/§9 -->
+  <div id="timer-bar" class="timer-bar" hidden>⏱ <span id="timer-bar-time">00:00</span></div>
+
+  <!-- 화면 유지용 무음 루프 video (타이머 동안 재생) — CLAUDE §5.2 -->
+  <video id="keep-awake" muted playsinline loop hidden
+         src="assets/video/keep-awake.mp4"
+         style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none"></video>
+
+  <!-- 알림음 (오디오 언락 후 재생) — DATA_SPEC §11 -->
+  <audio id="rest-end-audio" src="assets/sounds/rest-end.mp3" preload="auto"></audio>
+
+  <!-- 뷰 컨테이너: 탭에 따라 하나만 표시 -->
+  <main id="app">
+    <section id="view-today"  class="view"><!-- TODO(Phase1): 오늘 화면 (app.js) --></section>
+    <section id="view-history" class="view" hidden><!-- TODO(Phase3): 기록 화면 --></section>
+    <section id="view-guide"   class="view" hidden><!-- TODO(Phase3): 가이드/커스터마이징 --></section>
+    <section id="view-ai"      class="view" hidden><!-- TODO(Phase4): AI 코치 --></section>
+    <section id="view-settings" class="view" hidden><!-- TODO: 설정 (타이머·알림 테스트·백업) --></section>
+  </main>
+
+  <!-- 하단 네비게이션 (최대 5개) — UX_SPEC §2 -->
+  <nav id="tabbar" class="tabbar">
+    <button class="tab" data-view="today" aria-current="true">오늘</button>
+    <button class="tab" data-view="history">기록</button>
+    <button class="tab" data-view="guide">가이드</button>
+    <button class="tab" data-view="ai">AI 코치</button>
+    <button class="tab" data-view="settings">설정</button>
+  </nav>
+
+  <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app -->
+  <script src="./db.js"></script>
+  <script src="./evaluation.js"></script>
+  <script src="./timer.js"></script>
+  <script src="./backup.js"></script>
+  <script src="./ai-bridge.js"></script>
+  <script src="./app.js"></script>
+  <script>
+    // Service Worker 등록 (배포 시 HTTPS 필요)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>

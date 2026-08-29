@@ -1,0 +1,265 @@
+/* Fitlog styles — Phase 1 구현본. (UX_SPEC §19)
+   방향: 단순 배경 / 얕은 카드 / 큰 터치 영역 / 세로 우선 / Safe Area.
+   시그니처: 크고 읽기 쉬운 타이머 숫자 + 한 손 조작 스텝퍼. 장식 최소화. */
+
+:root {
+  --bg: #111318;
+  --surface: #1a1d24;
+  --surface-2: #232733;
+  --text: #e9ecf0;
+  --text-dim: #9aa1ad;
+  --text-faint: #656c7a;
+  --border: #2b303b;
+  --accent: #4ade80;     /* 진행/완료 */
+  --accent-dim: #1c3a29;
+  --warn: #fbbf24;       /* 증량 후보/주의 */
+  --danger: #f87171;     /* 부족/삭제 */
+  --blue: #60a5fa;
+  --tap: 52px;           /* 최소 터치 크기 */
+  --radius: 14px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --num: "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  -webkit-text-size-adjust: 100%; line-height: 1.4;
+}
+body { padding-top: var(--safe-top); }
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+/* 뷰 영역: 하단 탭바 높이만큼 여백 */
+#app { padding: 14px 14px calc(84px + var(--safe-bottom)); max-width: 640px; margin: 0 auto; }
+.view[hidden] { display: none; }
+
+/* ---------- 오늘 헤더 ---------- */
+.today-head { margin: 4px 2px 16px; }
+.today-date { color: var(--text-dim); font-size: 15px; }
+.today-title { font-size: 26px; font-weight: 700; margin: 2px 0 12px; letter-spacing: -0.02em; }
+.today-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  min-height: var(--tap); padding: 0 18px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:active { transform: scale(0.985); }
+.btn-primary { background: var(--accent); color: #08130c; border-color: transparent; }
+.btn-ghost { background: transparent; }
+.btn-block { width: 100%; }
+.btn-lg { min-height: 60px; font-size: 18px; }
+.btn-sm { min-height: 40px; font-size: 14px; padding: 0 12px; }
+.btn:disabled { opacity: 0.45; }
+
+/* ---------- 운동 카드 ---------- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 14px; }
+.card.done { opacity: 0.72; }
+.card.skipped { opacity: 0.5; }
+.card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ex-name { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.ex-name .opt { font-size: 12px; color: var(--text-faint); font-weight: 600; margin-left: 6px; }
+.guide-line { color: var(--text-dim); font-size: 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.last-line { color: var(--text-faint); font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* 상태 배지 */
+.badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.completed { background: var(--accent-dim); color: var(--accent); }
+.badge.progression_candidate { background: #3a3218; color: var(--warn); }
+.badge.volume_under { background: #3a2020; color: var(--danger); }
+.badge.skipped { background: var(--surface-2); color: var(--text-faint); }
+
+/* ---------- 세트 행 + 스텝퍼 ---------- */
+.sets { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.set-row { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 8px; align-items: center; }
+.set-row.warmup { opacity: 0.7; }
+.set-no { color: var(--text-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+.set-row.done .set-no { color: var(--accent); }
+
+.stepper { display: grid; grid-template-columns: var(--tap) 1fr var(--tap); align-items: center;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.stepper button { min-height: 48px; border: 0; background: transparent; color: var(--text); font-size: 24px; font-weight: 500; }
+.stepper button:active { background: var(--border); }
+.stepper input { width: 100%; min-height: 48px; text-align: center; border: 0; background: transparent; color: var(--text);
+  font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper .unit { font-size: 12px; color: var(--text-faint); font-weight: 600; }
+.stepper.locked { opacity: 0.85; }
+
+.set-complete { grid-column: 1 / -1; margin-top: 2px; }
+.set-recorded { grid-column: 1 / -1; color: var(--text-dim); font-size: 14px; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 8px; }
+.set-recorded .chk { color: var(--accent); }
+
+/* 워밍업 영역 */
+.warmup { margin-top: 12px; border: 1px dashed var(--border); border-radius: 12px; padding: 10px 12px; }
+.warmup summary { color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+.warmup summary::-webkit-details-marker { display: none; }
+.warmup summary::before { content: "▸ "; color: var(--text-faint); }
+.warmup[open] summary::before { content: "▾ "; }
+.warmup .sug { color: var(--text-faint); font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.warmup .sug li { margin: 2px 0; }
+
+.card-foot { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+.link { background: none; border: 0; color: var(--text-faint); font-size: 13px; padding: 8px 4px; }
+.link.danger { color: var(--danger); }
+
+/* ---------- 상단 고정 타이머 ---------- */
+.timer-bar {
+  position: fixed; top: var(--safe-top); left: 0; right: 0; z-index: 20;
+  text-align: center; padding: 10px; font-variant-numeric: tabular-nums; font-family: var(--num);
+  font-size: 22px; font-weight: 700; background: var(--surface-2); border-bottom: 1px solid var(--border);
+}
+.timer-bar[hidden] { display: none; }
+.timer-bar.ended { color: var(--accent); }
+
+/* 인라인 큰 카운트다운 (활성 세트 아래) */
+.countdown { text-align: center; padding: 10px 0 2px; }
+.countdown .cd-num { font-family: var(--num); font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; line-height: 1; }
+.countdown .cd-label { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.countdown.ended .cd-num { color: var(--accent); }
+
+/* ---------- 종료 요약 ---------- */
+.summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.summary h3 { margin: 0 0 10px; font-size: 17px; }
+.summary .row { display: flex; justify-content: space-between; padding: 6px 0; color: var(--text-dim); font-size: 15px; border-bottom: 1px solid var(--border); }
+.summary .row:last-of-type { border-bottom: 0; }
+.cardio-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.cardio-fields label { font-size: 12px; color: var(--text-faint); display: block; margin-bottom: 4px; }
+.cardio-fields input { width: 100%; min-height: 46px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 600; }
+
+/* ---------- 설정 ---------- */
+.settings-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; margin-bottom: 14px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: 0; }
+.settings-row .k { font-size: 15px; }
+.settings-row .sub { font-size: 12px; color: var(--text-faint); }
+.settings-row input[type="number"] { width: 84px; min-height: 44px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 700; }
+.section-label { color: var(--text-faint); font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; margin: 18px 2px 8px; }
+
+.placeholder { color: var(--text-faint); text-align: center; padding: 48px 20px; font-size: 14px; }
+.select-wrap select { min-height: var(--tap); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-size: 15px; padding: 0 12px; }
+
+/* ---------- 하단 네비게이션 ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--surface); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom);
+}
+.tab { min-height: 60px; border: 0; background: transparent; color: var(--text-faint); font-size: 11px; font-weight: 600; }
+.tab[aria-current="true"] { color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+
+/* ===== Phase 1 개선분: 날짜/추가/워밍업/추가세트/유산소 ===== */
+
+/* 헤더 상단 행: 날짜(탭) + 운동 추가 */
+.head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+.today-date-btn { background: transparent; border: 0; color: var(--text-dim); font-size: 15px; padding: 4px 0; display: inline-flex; align-items: center; }
+.today-date-btn .edit-hint { color: var(--text-faint); font-size: 13px; }
+.today-date-btn:active { opacity: 0.7; }
+.add-ex { background: var(--surface-2); }
+
+.muted { color: var(--text-faint); font-size: 13px; }
+.wait { grid-column: 2 / -1; color: var(--text-faint); font-size: 13px; }
+
+/* 즉석 운동 이름 입력 */
+.ex-name-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 17px; font-weight: 700; padding: 10px 12px; }
+.ex-name-input::placeholder { color: var(--text-faint); font-weight: 500; font-size: 14px; }
+
+/* + 세트 추가 버튼 */
+.add-set { width: 100%; margin-top: 4px; border-style: dashed; }
+
+/* 추가 세트(목표 초과) 표시 */
+.set-row.done.extra .set-no { color: var(--warn); }
+.set-row.done.extra .set-recorded { color: var(--text-dim); }
+.set-row.extra-active { background: #201d14; border: 1px solid #3a3218; border-radius: 12px; padding: 8px; }
+.set-row.extra-active .set-no { color: var(--warn); }
+
+/* ===== 워밍업: 본세트와 확실히 다르게 ===== */
+.warmup-box { margin-top: 12px; margin-bottom: 4px; border: 1px dashed #4a4636; border-radius: 12px;
+  padding: 10px 12px; background: rgba(251,191,36,0.04); }
+.warmup-head { display: flex; align-items: center; gap: 8px; color: var(--warn); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+.w-tag { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 6px;
+  background: #3a3218; color: var(--warn); font-size: 11px; font-weight: 800; }
+.w-sug { color: var(--text-faint); font-size: 12px; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.set-row.warmup { grid-template-columns: 24px 1fr 1fr 40px; opacity: 0.95; }
+.set-row.warmup .set-no { color: var(--warn); font-weight: 700; }
+.set-row.warmup .stepper { background: #1d1b16; border-color: #3a3418; }
+.row-x { min-height: 44px; border: 0; background: transparent; color: var(--text-faint); font-size: 15px; }
+
+/* ===== 유산소 카드 ===== */
+.card.cardio .cardio-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.cardio-field label { display: block; font-size: 12px; color: var(--text-faint); margin-bottom: 4px; }
+.card.cardio .stepper { grid-template-columns: 40px 1fr 40px; }
+.card.cardio .stepper button { min-height: 44px; font-size: 20px; }
+.card.cardio .stepper input { font-size: 16px; }
+.card.cardio .stepper .unit { display: none; }
+
+.inline-input { display: flex; align-items: center; gap: 6px; }
+.saved-note { border-color: var(--accent) !important; }
+
+/* ===== Phase 2: 날짜 화살표 / 워밍업 자동기록 표시 / 기록 화면 ===== */
+
+/* 날짜: 화살표만 + 탭 유도 */
+.today-date-btn { color: var(--text-dim); border-bottom: 1px dashed var(--border); padding-bottom: 2px; }
+.today-date-btn .edit-hint { color: var(--text-faint); font-size: 16px; margin-left: 8px; }
+
+/* 워밍업 자동기록 표시 */
+.set-row.warmup { grid-template-columns: 24px 1fr 1fr auto; }
+.w-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-left: 6px; }
+.w-saved { color: var(--accent); font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* 기록 목록 */
+.hist-row { width: 100%; display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 14px; margin-bottom: 10px; text-align: left; }
+.hist-row:active { background: var(--surface-2); }
+.hist-row .h-date { color: var(--text-dim); font-size: 14px; font-variant-numeric: tabular-nums; }
+.hist-row .h-name { color: var(--text); font-size: 16px; font-weight: 600; }
+.hist-row .h-status { color: var(--text-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.danger-btn { color: var(--danger); border-color: #3a2020; }
+
+/* ===== Phase 3: 가이드 편집 ===== */
+.gedit .order-btns { display: flex; gap: 6px; }
+.gedit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.gedit-field label { display: block; font-size: 12px; color: var(--text-faint); margin-bottom: 4px; }
+.gedit-field input { width: 100%; min-height: 46px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 600; }
+.gedit-field .with-btn { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.gedit-field .with-btn input { text-align: center; }
+.gedit-toggles { display: flex; gap: 18px; margin: 4px 2px 12px; }
+.gedit-toggle { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.gedit-toggle input { width: 22px; height: 22px; }
+.gedit-actions { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-top: 14px; }
+
+/* ===== A: 템플릿 액션 / C: 통계 ===== */
+.tpl-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 2px 14px; }
+.stats .prog-list { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; }
+.stats .prog-label { color: var(--warn); font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.stats .prog-names { color: var(--text); font-size: 14px; }
+
+/* ===== Phase 4: AI 코치 ===== */
+.ai-h { margin: 0 0 6px; font-size: 16px; }
+.ai-textarea { width: 100%; margin-top: 10px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 13px; font-family: var(--num); padding: 10px; resize: vertical; line-height: 1.5; }
+.ai-err { color: var(--danger); font-size: 14px; margin-top: 10px; }
+.ai-summary { color: var(--text); font-size: 14px; margin: 12px 0 6px; padding: 10px; background: var(--surface-2); border-radius: 10px; }
+.ai-change { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px; margin-top: 10px; }
+.ai-change input { width: 22px; height: 22px; margin-top: 2px; flex: 0 0 auto; }
+.ai-change-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.ai-action { font-size: 11px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); padding: 2px 7px; border-radius: 999px; }
+.ai-change-diff { color: var(--accent); font-size: 14px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.ai-reason { color: var(--text-dim); font-size: 13px; margin-top: 3px; }
