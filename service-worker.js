@@ -2,7 +2,7 @@
  * 자동 갱신: 새 버전 배포 시 앱을 열면 새 SW가 즉시 활성화되고 페이지가 자동 새로고침된다.
  * 앱 파일 수정/재배포 시 CACHE_VERSION을 올린다.
  */
-const CACHE_VERSION = "fitlog-v4";
+const CACHE_VERSION = "fitlog-v5";
 const APP_SHELL = [
   "./", "./index.html", "./styles.css",
   "./app.js", "./db.js", "./timer.js", "./evaluation.js", "./backup.js", "./ai-bridge.js",

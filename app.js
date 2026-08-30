@@ -86,7 +86,7 @@ const App = {
     this.session = { templateId, results, extras: [], cardio: { type: c.type, incline: c.incline, speedKmh: c.speedKmh, durationMinutes: c.durationMinutes, done: false } };
     this.ended = false;
   },
-  newRes() { return { workSets: [], warmupSets: [], skipped: false, showExtra: false }; },
+  newRes() { return { workSets: [], warmupSets: [], skipped: false, showExtra: false, notes: "" }; },
 
   async loadLastResults(templateId) {
     this.lastMap = {};
@@ -188,11 +188,18 @@ const App = {
       ]));
     }
 
+    card.appendChild(this.memoField(res));
+
     card.appendChild(el("div", { class: "card-foot" }, [el("span", {}, ""),
       isExtra ? el("button", { class: "link danger", onclick: () => { this.session.extras = this.session.extras.filter((e2) => e2.exercise.id !== ex.id); this.renderToday(); } }, "삭제")
               : (!targetMet ? el("button", { class: "link danger", onclick: () => this.skipExercise(guide) }, "이번 운동 생략") : el("span", {}, "")),
     ]));
     return card;
+  },
+
+  memoField(res) {
+    const input = el("input", { class: "memo-input", type: "text", value: res.notes || "", placeholder: "＋ 메모 (예: 우측 허리 통증)", oninput: (e) => { res.notes = e.target.value; } });
+    return el("div", { class: "memo-row" }, [input]);
   },
 
   renderWarmup(guide, ex, res) {
@@ -381,8 +388,8 @@ const App = {
     const c = this.session.cardio;
     const card = el("div", { class: "card cardio" + (c.done ? " done" : "") });
     card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name" }, "유산소 · 경사 걷기"), c.done ? el("span", { class: "badge completed", text: "완료" }) : el("span", {})]));
-    const mk = (key, label, step, unit) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(c, key, { step, min: 0, unit: unit || "" })]);
-    card.appendChild(el("div", { class: "cardio-grid" }, [mk("incline", "경사", 1, ""), mk("speedKmh", "속도", 0.1, "km/h"), mk("durationMinutes", "시간", 1, "분")]));
+    const mk = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(c, key, { step, min: 0, unit: "" })]);
+    card.appendChild(el("div", { class: "cardio-grid" }, [mk("incline", "경사", 1), mk("speedKmh", "속도 (km/h)", 0.1), mk("durationMinutes", "시간 (분)", 1)]));
     card.appendChild(el("button", { class: "btn btn-block " + (c.done ? "btn-ghost" : "btn-primary"), onclick: () => { c.done = !c.done; this.renderToday(); } }, c.done ? "유산소 완료 취소" : "✓ 유산소 완료"));
     return card;
   },
@@ -419,7 +426,7 @@ const App = {
           ...res.warmupSets.map((s) => ({ setNumber: 0, setType: "warmup", weight: s.weight, reps: s.reps, completed: true })),
           ...res.workSets.map((s, i) => ({ setNumber: i + 1, setType: "work", weight: s.weight, reps: s.reps, completed: true })),
         ],
-        status: this.evalExercise(g, ex, res).status, skipReason: null, notes: "",
+        status: this.evalExercise(g, ex, res).status, skipReason: null, notes: res.notes || "",
       };
     });
     const c = this.session.cardio;
@@ -495,22 +502,68 @@ const App = {
     if (progs.size) box.appendChild(el("div", { class: "prog-list" }, [el("div", { class: "prog-label", text: "증량 후보" }), el("div", { class: "prog-names", text: [...progs].join(", ") })]));
     return box;
   },
+  fmtActual(work) {
+    if (!work.length) return "—";
+    const ws = work.map((w) => w.weight);
+    const uniform = ws.every((w) => w === ws[0]) && ws[0] != null;
+    if (uniform) return `${ws[0]}kg · ${work.map((w) => w.reps).join(" / ")}`;
+    return work.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ");
+  },
+  recomputeStatus(r) {
+    const gs = r.guideSnapshot || {};
+    const ex = this.exercise(r.exerciseId);
+    const judge = (r.sets || []).filter((x) => x.setType === "work").slice(0, gs.targetSets || 99).map((x) => ({ setType: "work", reps: x.reps, completed: true }));
+    if (r.status === "skipped") return "skipped";
+    return window.FitlogEval.evaluateExercise({ targetSets: gs.targetSets || judge.length, minReps: gs.minReps || 0, maxReps: gs.maxReps || 999, sideMode: (ex && ex.sideMode) || "total", targetWeight: gs.targetWeight }, judge, {}).status;
+  },
   async renderHistoryDetail(id) {
+    this.histOpenId = id;
     const root = document.getElementById("view-history"); root.textContent = "";
-    root.appendChild(el("button", { class: "link", onclick: () => this.renderHistory() }, "‹ 목록으로"));
+    root.appendChild(el("button", { class: "link", onclick: () => { this.histEditEx = null; this.renderHistory(); } }, "‹ 목록으로"));
     let s = null; try { s = await window.FitlogDB.DB.get("workoutSessions", id); } catch (e) { console.warn(e); }
     if (!s) { root.appendChild(el("div", { class: "placeholder", text: "기록을 찾을 수 없어요." })); return; }
     const tpl = this.template(s.templateId);
     root.appendChild(el("div", { class: "today-title", text: `${s.date} (${WEEKDAY_KO[s.weekday] || ""})` }));
     root.appendChild(el("div", { class: "muted", style: "margin:-8px 2px 10px", text: tpl ? tpl.name : s.templateId }));
+
     s.exerciseResults.forEach((r) => {
       const ex = this.exercise(r.exerciseId); const nm = (ex && ex.name) || r.exerciseName || r.exerciseId;
-      const work = (r.sets || []).filter((x) => x.setType === "work"); const warm = (r.sets || []).filter((x) => x.setType === "warmup");
+      const work = (r.sets || []).filter((x) => x.setType === "work");
+      const warm = (r.sets || []).filter((x) => x.setType === "warmup");
       const gs = r.guideSnapshot || {};
-      const card = el("div", { class: "card" }, [el("div", { class: "card-top" }, [el("div", { class: "ex-name", text: nm }), el("span", { class: `badge ${r.status}`, text: this.statusLabel(r.status) })])]);
-      if (gs.targetWeight != null) card.appendChild(el("div", { class: "guide-line", text: `가이드 ${gs.targetWeight}kg · ${gs.minReps}~${gs.maxReps} × ${gs.targetSets}` }));
-      if (warm.length) card.appendChild(el("div", { class: "last-line", text: `워밍업 ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(" / ")}` }));
-      card.appendChild(el("div", { class: "guide-line", text: `실제 ${work.length ? work.map((w) => `${w.reps}`).join(" / ") + "회" : "—"}` }));
+      const card = el("div", { class: "card" });
+
+      if (this.histEditEx === r.exerciseId) {
+        // 편집 모드: 각 세트 다이얼 + 메모
+        const draft = { work: work.map((w) => ({ weight: w.weight, reps: w.reps })), warm: warm.map((w) => ({ weight: w.weight, reps: w.reps })), notes: r.notes || "" };
+        card.appendChild(el("div", { class: "ex-name", text: nm }));
+        if (draft.warm.length) card.appendChild(el("div", { class: "section-label", style: "margin:8px 2px 4px", text: "워밍업" }));
+        draft.warm.forEach((w, i) => card.appendChild(el("div", { class: "set-row warmup" }, [el("span", { class: "set-no", text: "W" }), this.dial(w, "weight", { step: 0.5, min: 0, unit: "kg", allowNull: true }), this.dial(w, "reps", { step: 1, min: 0, unit: "회" }), el("span", {})])));
+        card.appendChild(el("div", { class: "section-label", style: "margin:8px 2px 4px", text: "본세트" }));
+        draft.work.forEach((w, i) => card.appendChild(el("div", { class: "set-row" }, [el("span", { class: "set-no", text: `${i + 1}` }), this.dial(w, "weight", { step: 0.5, min: 0, unit: "kg", allowNull: true }), this.dial(w, "reps", { step: 1, min: 0, unit: "회" }), el("span", {})])));
+        const memo = el("input", { class: "memo-input", type: "text", value: draft.notes, placeholder: "＋ 메모", oninput: (e) => { draft.notes = e.target.value; } });
+        card.appendChild(el("div", { class: "memo-row" }, [memo]));
+        const save = async () => {
+          r.sets = [
+            ...draft.warm.map((w) => ({ setNumber: 0, setType: "warmup", weight: w.weight, reps: w.reps, completed: true })),
+            ...draft.work.map((w, i) => ({ setNumber: i + 1, setType: "work", weight: w.weight, reps: w.reps, completed: true })),
+          ];
+          r.notes = draft.notes; r.status = this.recomputeStatus(r); s.updatedAt = new Date().toISOString();
+          try { await window.FitlogDB.DB.put("workoutSessions", s); } catch (e) { console.error(e); }
+          this.histEditEx = null; this.renderHistoryDetail(id);
+        };
+        card.appendChild(el("div", { class: "gedit-actions", style: "grid-template-columns:1fr auto" }, [
+          el("button", { class: "btn btn-primary", onclick: save }, "수정 저장"),
+          el("button", { class: "btn btn-ghost", onclick: () => { this.histEditEx = null; this.renderHistoryDetail(id); } }, "취소"),
+        ]));
+      } else {
+        card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name", text: nm }), el("span", { class: `badge ${r.status}`, text: this.statusLabel(r.status) })]));
+        if (gs.targetWeight != null) card.appendChild(el("div", { class: "guide-line", text: `가이드 ${gs.targetWeight}kg · ${gs.minReps}~${gs.maxReps} × ${gs.targetSets}` }));
+        if (warm.length) card.appendChild(el("div", { class: "last-line", text: `워밍업 ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(" / ")}` }));
+        card.appendChild(el("div", { class: "guide-line", text: `실제 ${this.fmtActual(work)}` }));
+        if (r.notes) card.appendChild(el("div", { class: "memo-line", text: `메모 ${r.notes}` }));
+        card.appendChild(el("div", { class: "card-foot" }, [el("span", {}, ""), el("button", { class: "btn btn-sm", onclick: () => { this.histEditEx = r.exerciseId; this.renderHistoryDetail(id); } }, "수정")]));
+      }
       root.appendChild(card);
     });
     if (s.cardio) root.appendChild(el("div", { class: "card" }, [el("div", { class: "ex-name", text: "유산소" }), el("div", { class: "guide-line", text: `경사 ${s.cardio.incline} · ${s.cardio.speedKmh}km/h · ${s.cardio.durationMinutes}분` })]));
@@ -763,6 +816,33 @@ const App = {
       el("button", { class: "btn btn-block", style: "margin-top:8px", onclick: () => { this.aiState.input = inputArea.value; this.validateAI(inputArea.value, diffBox); } }, "검증"),
       diffBox,
     ]));
+
+    // 3. 특정일 교정 — 그날 운동+메모로 점검 프롬프트
+    const corrArea = el("textarea", { class: "ai-textarea", id: "ai-corr", readonly: "readonly", rows: "8", hidden: true });
+    const daySel = el("select", { id: "ai-day" }, [el("option", { value: "", selected: "selected" }, "날짜 불러오는 중…")]);
+    const corrCard = el("div", { class: "card" }, [
+      el("h3", { class: "ai-h", text: "3. 특정일 교정받기" }),
+      el("div", { class: "muted", text: "특정 날짜 운동 하나를 골라 그날 기록·메모를 담은 점검용 프롬프트를 만듭니다. 통증·자세·중량 조정 등을 상담할 때 쓰세요." }),
+      el("div", { class: "select-wrap", style: "margin-top:10px" }, [daySel]),
+      el("button", { class: "btn btn-primary btn-block", style: "margin-top:8px", onclick: async () => {
+        const sid = daySel.value; if (!sid) { window.alert("날짜를 선택하세요."); return; }
+        const sess = await window.FitlogDB.DB.get("workoutSessions", sid);
+        if (!sess) return;
+        const text = window.FitlogAI.buildCorrectionPrompt(sess, { templates: this.templates, exercises: this.exercises });
+        corrArea.value = text; corrArea.hidden = false; document.getElementById("ai-corr-copy").hidden = false;
+      } }, "교정 프롬프트 생성"),
+      corrArea,
+      el("button", { class: "btn btn-block", id: "ai-corr-copy", style: "margin-top:8px", hidden: true, onclick: async () => {
+        try { await navigator.clipboard.writeText(corrArea.value); window.alert("복사됐어요."); } catch (_) { corrArea.select && corrArea.select(); window.alert("길게 눌러 복사하세요."); }
+      } }, "복사"),
+    ]);
+    root.appendChild(corrCard);
+    // 날짜 목록 채우기
+    window.FitlogDB.DB.recentSessions(30).then((sessions) => {
+      daySel.textContent = "";
+      daySel.appendChild(el("option", { value: "" }, sessions.length ? "날짜 선택…" : "저장된 운동 없음"));
+      sessions.forEach((s) => { const tpl = this.template(s.templateId); daySel.appendChild(el("option", { value: s.id }, `${s.date} (${WEEKDAY_KO[s.weekday] || ""}) · ${tpl ? tpl.name : ""}`)); });
+    }).catch(() => {});
   },
   validateAI(raw, diffBox) {
     diffBox.textContent = "";

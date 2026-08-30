@@ -330,3 +330,21 @@ body { min-height: 100vh; min-height: 100dvh; }
 
 /* A-4: 알림 테스트 버튼 오른쪽 정렬 (템플릿 선택은 왼쪽) */
 .today-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* ===== 2단계 A-5/A-6 ===== */
+/* 유산소: 단위가 라벨로 갔으니 칸 안 숫자 넉넉히 */
+.card.cardio .cardio-field label { font-size: 11px; }
+.card.cardio .dial-face { padding: 4px 2px; }
+
+/* A-6: 완료 세트 줄 — flex로 인라인 고정(수정 버튼 아래로 안 내려감) */
+.set-row.done { display: flex; align-items: center; gap: 10px; }
+.set-row.done .set-no { flex: 0 0 auto; width: 22px; }
+.set-row.done .set-recorded { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-row.done .set-edit { flex: 0 0 auto; }
+
+/* ===== 2단계 B: 메모 / 기록 상세 ===== */
+.memo-row { margin-top: 10px; }
+.memo-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; }
+.memo-input::placeholder { color: var(--text-faint); }
+.memo-line { color: var(--warn); font-size: 13px; margin-top: 4px; }

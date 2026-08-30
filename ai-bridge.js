@@ -44,6 +44,30 @@ const AiBridge = {
     return s;
   },
 
+  // 특정일 교정 프롬프트: 그날 운동·실제세트·메모로 점검 요청
+  buildCorrectionPrompt(session, ctx) {
+    const { templates, exercises } = ctx;
+    const WD = { mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토", sun: "일" };
+    const exName = (id) => (exercises.find((e) => e.id === id) || {}).name || id;
+    const tplName = (id) => (templates.find((t) => t.id === id) || {}).name || id;
+    let s = "";
+    s += "너는 내 웨이트 트레이닝 코치야. 아래는 특정 날짜 내 운동 기록과 메모야. 이걸 보고 점검해줘.\n";
+    s += "특히 메모에 통증·불편이 있으면 원인 가능성, 그날 무게/횟수 조정이 적절했는지, 다음에 어떻게 하면 좋을지(자세·중량·대체운동 등)를 알려줘. 데드리프트 계열은 내가 의도적으로 제외 중이야.\n\n";
+    s += `[날짜] ${session.date} (${WD[session.weekday] || ""}) · ${tplName(session.templateId)}\n\n`;
+    s += "[운동별 기록]\n";
+    (session.exerciseResults || []).forEach((r) => {
+      const work = (r.sets || []).filter((x) => x.setType === "work");
+      const warm = (r.sets || []).filter((x) => x.setType === "warmup");
+      s += `\n- ${exName(r.exerciseId)} [${r.status}]\n`;
+      if (warm.length) s += `  워밍업: ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ")}\n`;
+      s += `  실제: ${work.length ? work.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ") : "—"}\n`;
+      if (r.notes) s += `  메모: ${r.notes}\n`;
+    });
+    if (session.cardio) s += `\n[유산소] 경사 ${session.cardio.incline} · ${session.cardio.speedKmh}km/h · ${session.cardio.durationMinutes}분\n`;
+    s += "\n[요청] 위 기록을 바탕으로: 1) 메모의 통증/이슈 점검 2) 그날 조정이 적절했는지 3) 다음 세션 권장(무게·횟수·자세·대체운동). 필요하면 질문해도 돼.\n";
+    return s;
+  },
+
   // AI 반환 JSON 검증 — DATA_SPEC §17. guideIds(Set) 주면 존재 여부까지 검사.
   validate(obj, guideIds) {
     if (!obj || obj.format !== "fitlog-guide-update") return { ok: false, reason: "format이 fitlog-guide-update가 아닙니다." };
