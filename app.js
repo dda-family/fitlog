@@ -169,7 +169,7 @@ const App = {
     if (ex.warmupEnabled) card.appendChild(this.renderWarmup(guide, ex, res));
 
     const sets = el("div", { class: "sets" });
-    res.workSets.forEach((s, i) => sets.appendChild(this.renderRecordedRow(i, s, ex, i >= guide.targetSets)));
+    res.workSets.forEach((s, i) => sets.appendChild(res.editingSet === i ? this.renderEditRow(res, i, ex) : this.renderRecordedRow(i, s, ex, i >= guide.targetSets, res)));
     const activeIdx = res.workSets.length;
     if (activeIdx < guide.targetSets) {
       sets.appendChild(this.renderActiveRow(guide, ex, res, activeIdx, false));
@@ -202,12 +202,10 @@ const App = {
       box.appendChild(el("div", { class: "w-sug", text: "추천: " + guide.warmupSuggestions.map((w) => `${w.note ? w.note + " " : ""}${w.weight}kg×${w.reps}`).join(" · ") }));
     const rows = el("div", { class: "sets" });
     res.warmupSets.forEach((s, i) => {
-      const wInput = el("input", { type: "number", inputmode: "decimal", value: s.weight, "aria-label": "워밍업 중량", oninput: (e) => { s.weight = e.target.value === "" ? null : Number(e.target.value); } });
-      const rInput = el("input", { type: "number", inputmode: "numeric", value: s.reps, "aria-label": "워밍업 반복", oninput: (e) => { s.reps = Number(e.target.value) || 0; } });
       rows.appendChild(el("div", { class: "set-row warmup" }, [
         el("span", { class: "set-no", text: "W" }),
-        this.stepper(wInput, this.weightStep(ex, s.weight), this.unitLabel(ex)),
-        this.stepper(rInput, 1, "회"),
+        this.dial(s, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
+        this.dial(s, "reps", { step: 1, min: 0, unit: "회" }),
         el("div", { class: "w-actions" }, [el("span", { class: "w-saved", text: "✓ 기록됨" }), el("button", { class: "row-x", "aria-label": "삭제", onclick: () => { res.warmupSets.splice(i, 1); this.renderToday(); } }, "✕")]),
       ]));
     });
@@ -216,32 +214,109 @@ const App = {
     return box;
   },
 
-  renderRecordedRow(i, set, ex, isExtra) {
+  renderRecordedRow(i, set, ex, isExtra, res) {
     return el("div", { class: "set-row done" + (isExtra ? " extra" : "") }, [
       el("span", { class: "set-no", text: isExtra ? `+${i + 1}` : `${i + 1}` }),
       el("div", { class: "set-recorded" }, [el("span", { class: "chk", text: "✓" }), el("span", { text: `${this.weightText(ex, set.weight)} · ${set.reps}회${isExtra ? "  (추가)" : ""}` })]),
+      el("button", { class: "set-edit", "aria-label": "수정", onclick: () => { res.editingSet = i; this.renderToday(); } }, "수정"),
     ]);
   },
 
   renderActiveRow(guide, ex, res, i, isExtra) {
     const prev = res.workSets[res.workSets.length - 1];
     const lm = this.lastMap[ex.id];
-    // 기본값 우선순위: 이번 세션 직전 세트 → 지난번 실제 무게 → 가이드값 (가이드는 카드에 계속 표시됨)
-    const defWeight = prev ? prev.weight : (lm && lm.weight != null ? lm.weight : (guide.targetWeight != null ? guide.targetWeight : ""));
+    const defWeight = prev ? prev.weight : (lm && lm.weight != null ? lm.weight : (guide.targetWeight != null ? guide.targetWeight : null));
     const defReps = prev ? prev.reps : guide.minReps;
     const isLastTarget = !isExtra && i === guide.targetSets - 1;
-    const wInput = el("input", { type: "number", inputmode: "decimal", value: defWeight, "aria-label": "중량" });
-    const rInput = el("input", { type: "number", inputmode: "numeric", value: defReps, "aria-label": "반복수" });
-    const btn = el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: () => this.completeSet(guide, ex, res, wInput, rInput, isLastTarget, isExtra) },
+    const draft = { weight: defWeight, reps: defReps };
+    const btn = el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: () => this.completeSet(guide, ex, res, draft, isLastTarget, isExtra) },
       isExtra ? "✓ 추가 세트 기록" : (isLastTarget ? "✓ 운동 완료 · 다음 운동 준비" : "✓ 세트 완료"));
     const row = el("div", { class: "set-row" + (isExtra ? " extra-active" : "") }, [
       el("span", { class: "set-no", text: isExtra ? "＋" : `${i + 1}` }),
-      this.stepper(wInput, this.weightStep(ex, defWeight), this.unitLabel(ex)),
-      this.stepper(rInput, 1, "회"),
+      this.dial(draft, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
+      this.dial(draft, "reps", { step: 1, min: 0, unit: "회" }),
       el("div", { class: "set-complete" }, [btn]),
     ]);
     if (isExtra) row.appendChild(el("button", { class: "link", style: "grid-column:1/-1", onclick: () => { res.showExtra = false; this.renderToday(); } }, "취소"));
     return row;
+  },
+
+  // 완료된 세트 수정 행 (수정 버튼 → 이 편집 행)
+  renderEditRow(res, i, ex) {
+    const set = res.workSets[i];
+    const draft = { weight: set.weight, reps: set.reps };
+    const save = () => { res.workSets[i] = { weight: draft.weight, reps: draft.reps }; res.editingSet = null; this.renderToday(); };
+    const row = el("div", { class: "set-row extra-active" }, [
+      el("span", { class: "set-no", text: `${i + 1}` }),
+      this.dial(draft, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
+      this.dial(draft, "reps", { step: 1, min: 0, unit: "회" }),
+      el("div", { class: "set-complete" }, [el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: save }, "✓ 수정 저장")]),
+    ]);
+    row.appendChild(el("button", { class: "link", style: "grid-column:1/-1", onclick: () => { res.editingSet = null; this.renderToday(); } }, "취소"));
+    return row;
+  },
+
+  // 드래그 다이얼: 세로로 밀어 값 조절(절충 가속), 짧게 탭하면 직접 입력.
+  // obj[key]를 직접 변경. opts: { step, min, unit, decimals, allowNull, onChange }
+  dial(obj, key, opts) {
+    const step = opts.step, min = opts.min == null ? 0 : opts.min;
+    const dec = opts.decimals == null ? (step < 1 ? 1 : 0) : opts.decimals;
+    const unit = opts.unit || "";
+    const fmt = (v) => (v == null || v === "") ? "–" : (dec ? Number(v).toFixed(dec) : String(Math.round(Number(v))));
+    const wrap = el("div", { class: "dial" });
+    let editing = false;
+
+    const paint = () => {
+      wrap.textContent = "";
+      if (editing) {
+        const input = el("input", { type: "text", inputmode: "decimal", class: "dial-input", value: obj[key] == null ? "" : String(obj[key]) });
+        wrap.appendChild(el("div", { class: "dial-mid" }, [input, unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean)));
+        setTimeout(() => { input.focus(); try { input.select(); } catch (_) {} }, 0);
+        const commit = () => {
+          const raw = (input.value || "").trim().replace(/,/g, ".");
+          if (raw === "") obj[key] = opts.allowNull ? null : min;
+          else { let n = Number(raw); if (isNaN(n)) n = Number(obj[key]) || 0; obj[key] = Math.max(min, Number(n.toFixed(4))); }
+          editing = false; paint(); opts.onChange && opts.onChange(obj[key]);
+        };
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); input.blur(); } });
+      } else {
+        wrap.appendChild(el("div", { class: "dial-hint", text: "▲" }));
+        wrap.appendChild(el("div", { class: "dial-mid" }, [el("div", { class: "dial-num", text: fmt(obj[key]) }), unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean)));
+        wrap.appendChild(el("div", { class: "dial-hint", text: "▼" }));
+      }
+    };
+
+    let dragging = false, moved = 0, lastY = 0, acc = 0, startT = 0;
+    wrap.addEventListener("pointerdown", (e) => {
+      if (editing) return;
+      dragging = true; moved = 0; acc = 0; lastY = e.clientY; startT = Date.now();
+      try { wrap.setPointerCapture(e.pointerId); } catch (_) {}
+      wrap.classList.add("active");
+    });
+    wrap.addEventListener("pointermove", (e) => {
+      if (!dragging) return; e.preventDefault();
+      const d = lastY - e.clientY; lastY = e.clientY; moved += Math.abs(d);
+      const factor = 1 + Math.min(Math.abs(d) / 6, 6);        // 빠르게 밀면 가속(절충)
+      acc += (d / 8) * factor;                                 // 8px ≈ 1스텝(천천히)
+      const whole = Math.trunc(acc);
+      if (whole !== 0) {
+        acc -= whole;
+        let v = (Number(obj[key]) || 0) + whole * step;
+        v = Math.max(min, Math.round(v / step) * step);
+        obj[key] = Number(v.toFixed(4));
+        const numEl = wrap.querySelector(".dial-num"); if (numEl) numEl.textContent = fmt(obj[key]);
+        opts.onChange && opts.onChange(obj[key]);
+      }
+    });
+    const end = () => {
+      if (!dragging) return; dragging = false; wrap.classList.remove("active");
+      if (moved < 6 && Date.now() - startT < 300) { editing = true; paint(); } // 탭 → 직접 입력
+    };
+    wrap.addEventListener("pointerup", end);
+    wrap.addEventListener("pointercancel", end);
+    paint();
+    return wrap;
   },
 
   stepper(input, step, unit) {
@@ -252,9 +327,9 @@ const App = {
     ]);
   },
 
-  completeSet(guide, ex, res, wInput, rInput, isLastTarget, isExtra) {
-    const weight = wInput.value === "" ? null : Number(wInput.value);
-    const reps = Number(rInput.value) || 0;
+  completeSet(guide, ex, res, draft, isLastTarget, isExtra) {
+    const weight = draft.weight == null || draft.weight === "" ? null : Number(draft.weight);
+    const reps = Number(draft.reps) || 0;
     res.workSets.push({ weight, reps });
     if (isExtra) res.showExtra = false;
     this.activeTimerExerciseId = isExtra ? ex.id : guide.exerciseId;
@@ -301,8 +376,8 @@ const App = {
     const c = this.session.cardio;
     const card = el("div", { class: "card cardio" + (c.done ? " done" : "") });
     card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name" }, "유산소 · 경사 걷기"), c.done ? el("span", { class: "badge completed", text: "완료" }) : el("span", {})]));
-    const mk = (key, label, unit, step) => { const input = el("input", { type: "number", inputmode: "decimal", value: c[key], "aria-label": label, oninput: (e) => { c[key] = Number(e.target.value) || 0; } }); return el("div", { class: "cardio-field" }, [el("label", { text: label }), this.stepper(input, step, unit)]); };
-    card.appendChild(el("div", { class: "cardio-grid" }, [mk("incline", "경사", "", 1), mk("speedKmh", "속도", "km/h", 0.1), mk("durationMinutes", "시간", "분", 5)]));
+    const mk = (key, label, step, unit) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(c, key, { step, min: 0, unit: unit || "" })]);
+    card.appendChild(el("div", { class: "cardio-grid" }, [mk("incline", "경사", 1, ""), mk("speedKmh", "속도", 0.1, "km/h"), mk("durationMinutes", "시간", 1, "분")]));
     card.appendChild(el("button", { class: "btn btn-block " + (c.done ? "btn-ghost" : "btn-primary"), onclick: () => { c.done = !c.done; this.renderToday(); } }, c.done ? "유산소 완료 취소" : "✓ 유산소 완료"));
     return card;
   },
