@@ -303,3 +303,30 @@ body { min-height: 100vh; min-height: 100dvh; }
 /* 유산소: 다이얼로 바뀌었으니 3칸 균등 + 단위 보이게 */
 .card.cardio .cardio-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .card.cardio .dial-unit { display: inline; }
+
+/* ===== 1단계 A: 다이얼 분리(숫자 탭 / 우측 그립 드래그) + 정렬 ===== */
+.dial { display: grid; grid-template-columns: 1fr 38px; align-items: stretch;
+  touch-action: auto; cursor: default; min-width: 0; padding: 0; }
+.dial-face { display: flex; align-items: center; justify-content: center; min-width: 0; cursor: text; padding: 4px; }
+.dial-face .dial-input { width: 100%; text-align: center; }
+.dial-grip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-left: 1px solid var(--border); background: var(--surface); color: var(--text-faint);
+  touch-action: none; cursor: ns-resize; -webkit-user-select: none; user-select: none; }
+.dial.active { border-color: var(--accent); }
+.dial.active .dial-grip { color: var(--accent); background: #1c2620; }
+.dial-grip .g-up, .dial-grip .g-dn { font-size: 9px; line-height: 1; }
+.dial-hint { display: none; }
+
+/* 완료 세트 행: 수정 버튼 인라인 정렬(아래로 안 내려가게) */
+.set-row.done { grid-template-columns: 26px 1fr auto; align-items: center; }
+.set-row.done .set-recorded { min-width: 0; }
+
+/* 워밍업 행 4열 재정렬 */
+.set-row.warmup { grid-template-columns: 22px 1fr 1fr 34px; gap: 6px; align-items: center; }
+.set-row.warmup .w-actions { flex-direction: column; align-items: center; gap: 2px; padding-left: 0; }
+
+/* 유산소 3칸 균등 */
+.card.cardio .cardio-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* A-4: 알림 테스트 버튼 오른쪽 정렬 (템플릿 선택은 왼쪽) */
+.today-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

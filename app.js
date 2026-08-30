@@ -263,59 +263,64 @@ const App = {
     const dec = opts.decimals == null ? (step < 1 ? 1 : 0) : opts.decimals;
     const unit = opts.unit || "";
     const fmt = (v) => (v == null || v === "") ? "–" : (dec ? Number(v).toFixed(dec) : String(Math.round(Number(v))));
-    const wrap = el("div", { class: "dial" });
-    let editing = false;
 
-    const paint = () => {
-      wrap.textContent = "";
-      if (editing) {
-        const input = el("input", { type: "text", inputmode: "decimal", class: "dial-input", value: obj[key] == null ? "" : String(obj[key]) });
-        wrap.appendChild(el("div", { class: "dial-mid" }, [input, unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean)));
-        setTimeout(() => { input.focus(); try { input.select(); } catch (_) {} }, 0);
-        const commit = () => {
-          const raw = (input.value || "").trim().replace(/,/g, ".");
-          if (raw === "") obj[key] = opts.allowNull ? null : min;
-          else { let n = Number(raw); if (isNaN(n)) n = Number(obj[key]) || 0; obj[key] = Math.max(min, Number(n.toFixed(4))); }
-          editing = false; paint(); opts.onChange && opts.onChange(obj[key]);
-        };
-        input.addEventListener("blur", commit);
-        input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); input.blur(); } });
-      } else {
-        wrap.appendChild(el("div", { class: "dial-hint", text: "▲" }));
-        wrap.appendChild(el("div", { class: "dial-mid" }, [el("div", { class: "dial-num", text: fmt(obj[key]) }), unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean)));
-        wrap.appendChild(el("div", { class: "dial-hint", text: "▼" }));
-      }
+    const wrap = el("div", { class: "dial" });
+    const face = el("div", { class: "dial-face" });          // 왼쪽: 숫자 (탭 → 직접 입력)
+    const grip = el("div", { class: "dial-grip", "aria-hidden": "true" }, [el("span", { class: "g-up", text: "▲" }), el("span", { class: "g-dn", text: "▼" })]); // 오른쪽: 드래그 핸들
+
+    const paintFace = () => {
+      face.textContent = "";
+      face.appendChild(el("div", { class: "dial-mid" }, [el("div", { class: "dial-num", text: fmt(obj[key]) }), unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean)));
     };
 
-    let dragging = false, moved = 0, lastY = 0, acc = 0, startT = 0;
-    wrap.addEventListener("pointerdown", (e) => {
-      if (editing) return;
-      dragging = true; moved = 0; acc = 0; lastY = e.clientY; startT = Date.now();
-      try { wrap.setPointerCapture(e.pointerId); } catch (_) {}
-      wrap.classList.add("active");
+    // 탭 → 직접 입력 (click 핸들러 안에서 즉시 focus → iOS 키보드 확실히 뜸)
+    let editing = false;
+    face.addEventListener("click", () => {
+      if (editing) return; editing = true;
+      face.textContent = "";
+      const input = el("input", { type: "text", inputmode: "decimal", class: "dial-input", value: obj[key] == null ? "" : String(obj[key]) });
+      const mid = el("div", { class: "dial-mid" }, [input, unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean));
+      face.appendChild(mid);
+      input.focus(); try { input.select(); } catch (_) {}
+      const commit = () => {
+        const raw = (input.value || "").trim().replace(/,/g, ".");
+        if (raw === "") obj[key] = opts.allowNull ? null : min;
+        else { let n = Number(raw); if (isNaN(n)) n = Number(obj[key]) || 0; obj[key] = Math.max(min, Number(n.toFixed(4))); }
+        editing = false; paintFace(); opts.onChange && opts.onChange(obj[key]);
+      };
+      input.addEventListener("blur", commit);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); input.blur(); } });
     });
-    wrap.addEventListener("pointermove", (e) => {
+
+    // 오른쪽 그립 드래그 → 값 조절 (절충 가속). 숫자를 손가락이 가리지 않음.
+    let dragging = false, lastY = 0, acc = 0;
+    grip.addEventListener("pointerdown", (e) => {
+      dragging = true; lastY = e.clientY; acc = 0;
+      try { grip.setPointerCapture(e.pointerId); } catch (_) {}
+      wrap.classList.add("active"); e.preventDefault();
+    });
+    grip.addEventListener("pointermove", (e) => {
       if (!dragging) return; e.preventDefault();
-      const d = lastY - e.clientY; lastY = e.clientY; moved += Math.abs(d);
-      const factor = 1 + Math.min(Math.abs(d) / 6, 6);        // 빠르게 밀면 가속(절충)
-      acc += (d / 8) * factor;                                 // 8px ≈ 1스텝(천천히)
+      const d = lastY - e.clientY; lastY = e.clientY;
+      const factor = 1 + Math.min(Math.abs(d) / 6, 6);
+      acc += (d / 8) * factor;
       const whole = Math.trunc(acc);
       if (whole !== 0) {
         acc -= whole;
         let v = (Number(obj[key]) || 0) + whole * step;
         v = Math.max(min, Math.round(v / step) * step);
         obj[key] = Number(v.toFixed(4));
-        const numEl = wrap.querySelector(".dial-num"); if (numEl) numEl.textContent = fmt(obj[key]);
+        if (!editing) { const n = face.querySelector(".dial-num"); if (n) n.textContent = fmt(obj[key]); }
         opts.onChange && opts.onChange(obj[key]);
       }
     });
-    const end = () => {
-      if (!dragging) return; dragging = false; wrap.classList.remove("active");
-      if (moved < 6 && Date.now() - startT < 300) { editing = true; paint(); } // 탭 → 직접 입력
-    };
-    wrap.addEventListener("pointerup", end);
-    wrap.addEventListener("pointercancel", end);
-    paint();
+    const end = () => { if (!dragging) return; dragging = false; wrap.classList.remove("active"); };
+    grip.addEventListener("pointerup", end);
+    grip.addEventListener("pointercancel", end);
+
+    paintFace();
+    wrap.appendChild(face);
+    wrap.appendChild(grip);
     return wrap;
   },
 
