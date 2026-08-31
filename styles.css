@@ -348,3 +348,6 @@ body { min-height: 100vh; min-height: 100dvh; }
   color: var(--text); font-size: 14px; padding: 10px 12px; }
 .memo-input::placeholder { color: var(--text-faint); }
 .memo-line { color: var(--warn); font-size: 13px; margin-top: 4px; }
+
+/* 워밍업 하단: 추가 + 초기화 나란히 */
+.w-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }

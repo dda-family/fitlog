@@ -190,7 +190,10 @@ const App = {
 
     card.appendChild(this.memoField(res));
 
-    card.appendChild(el("div", { class: "card-foot" }, [el("span", {}, ""),
+    card.appendChild(el("div", { class: "card-foot" }, [
+      (res.workSets.length > 0 && !isExtra)
+        ? el("button", { class: "link", onclick: () => { if (window.confirm("이 운동의 본세트 기록을 초기화할까요? (워밍업·메모는 유지)")) { res.workSets = []; res.showExtra = false; res.editingSet = null; this.renderToday(); } } }, "본세트 초기화")
+        : el("span", {}, ""),
       isExtra ? el("button", { class: "link danger", onclick: () => { this.session.extras = this.session.extras.filter((e2) => e2.exercise.id !== ex.id); this.renderToday(); } }, "삭제")
               : (!targetMet ? el("button", { class: "link danger", onclick: () => this.skipExercise(guide) }, "이번 운동 생략") : el("span", {}, "")),
     ]));
@@ -217,7 +220,10 @@ const App = {
       ]));
     });
     box.appendChild(rows);
-    box.appendChild(el("button", { class: "btn btn-sm btn-ghost", style: "margin-top:8px", onclick: () => { const sug = guide.warmupSuggestions && guide.warmupSuggestions[0]; res.warmupSets.push({ weight: sug ? sug.weight : 0, reps: 10 }); this.renderToday(); } }, "＋ 워밍업 세트"));
+    box.appendChild(el("div", { class: "w-foot" }, [
+      el("button", { class: "btn btn-sm btn-ghost", onclick: () => { const sug = guide.warmupSuggestions && guide.warmupSuggestions[0]; res.warmupSets.push({ weight: sug ? sug.weight : 0, reps: 10 }); this.renderToday(); } }, "＋ 워밍업 세트"),
+      res.warmupSets.length > 0 ? el("button", { class: "link", onclick: () => { if (window.confirm("워밍업 세트만 초기화할까요? (본세트·메모는 유지)")) { res.warmupSets = []; this.renderToday(); } } }, "워밍업 초기화") : null,
+    ].filter(Boolean)));
     return box;
   },
 
@@ -828,7 +834,7 @@ const App = {
         const sid = daySel.value; if (!sid) { window.alert("날짜를 선택하세요."); return; }
         const sess = await window.FitlogDB.DB.get("workoutSessions", sid);
         if (!sess) return;
-        const text = window.FitlogAI.buildCorrectionPrompt(sess, { templates: this.templates, exercises: this.exercises });
+        const text = window.FitlogAI.buildCorrectionPrompt(sess, { templates: this.templates, exercises: this.exercises, guides: this.guides });
         corrArea.value = text; corrArea.hidden = false; document.getElementById("ai-corr-copy").hidden = false;
       } }, "교정 프롬프트 생성"),
       corrArea,
@@ -844,10 +850,35 @@ const App = {
       sessions.forEach((s) => { const tpl = this.template(s.templateId); daySel.appendChild(el("option", { value: s.id }, `${s.date} (${WEEKDAY_KO[s.weekday] || ""}) · ${tpl ? tpl.name : ""}`)); });
     }).catch(() => {});
   },
+  // 붙여넣은 텍스트(설명+JSON 섞여도)에서 fitlog-guide-update JSON만 추출
+  extractGuideJson(raw) {
+    const text = String(raw || "").trim();
+    if (!text) return null;
+    // 1) 통째로 JSON인 경우
+    try { const o = JSON.parse(text); if (o && o.format === "fitlog-guide-update") return o; } catch (_) {}
+    // 2) ```json … ``` 또는 ``` … ``` 코드블록들 시도
+    const fences = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)].map((m) => m[1]);
+    for (const f of fences) { try { const o = JSON.parse(f.trim()); if (o && o.format === "fitlog-guide-update") return o; } catch (_) {} }
+    // 3) format 키워드 근처의 중괄호 균형 파싱
+    const idx = text.indexOf("fitlog-guide-update");
+    if (idx !== -1) {
+      let start = text.lastIndexOf("{", idx);
+      while (start !== -1) {
+        let depth = 0;
+        for (let i = start; i < text.length; i++) {
+          if (text[i] === "{") depth++;
+          else if (text[i] === "}") { depth--; if (depth === 0) { try { const o = JSON.parse(text.slice(start, i + 1)); if (o && o.format === "fitlog-guide-update") return o; } catch (_) {} break; } }
+        }
+        start = text.lastIndexOf("{", start - 1);
+      }
+    }
+    return null;
+  },
   validateAI(raw, diffBox) {
     diffBox.textContent = "";
-    let obj; try { obj = JSON.parse((raw || "").trim()); } catch (e) {
-      diffBox.appendChild(el("div", { class: "ai-err", text: "JSON 파싱 실패. 코드블록(```)이나 설명 없이 순수 JSON만 붙여넣었는지 확인하세요." })); return;
+    const obj = this.extractGuideJson(raw || "");
+    if (!obj) {
+      diffBox.appendChild(el("div", { class: "ai-err", text: "가이드 적용 JSON을 찾지 못했어요. AI 답변 중 ```json … ``` 부분(또는 fitlog-guide-update JSON)을 그대로 붙여넣었는지 확인하세요." })); return;
     }
     const ids = new Set(this.guides.map((g) => g.id));
     const v = window.FitlogAI.validate(obj, ids);
