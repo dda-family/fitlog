@@ -474,7 +474,7 @@ const App = {
       const md = s.date.slice(5).replace("-", "/"); const wk = WEEKDAY_KO[s.weekday] || "";
       const req = (s.exerciseResults || []).filter((r) => !r.adhoc);
       const doneN = req.filter((r) => r.status === "completed" || r.status === "progression_candidate").length;
-      root.appendChild(el("button", { class: "hist-row", onclick: () => this.renderHistoryDetail(s.id) }, [
+      root.appendChild(el("button", { class: "hist-row", onclick: () => { this.histEditEx = null; this.histCardioEdit = false; this.renderHistoryDetail(s.id); } }, [
         el("span", { class: "h-date", text: `${md} ${wk}` }), el("span", { class: "h-name", text: name }),
         el("span", { class: "h-status", text: `${doneN}/${req.length}${s.cardio ? " · 유산소" : ""}` }),
       ]));
@@ -525,7 +525,7 @@ const App = {
   async renderHistoryDetail(id) {
     this.histOpenId = id;
     const root = document.getElementById("view-history"); root.textContent = "";
-    root.appendChild(el("button", { class: "link", onclick: () => { this.histEditEx = null; this.renderHistory(); } }, "‹ 목록으로"));
+    root.appendChild(el("button", { class: "link", onclick: () => { this.histEditEx = null; this.histCardioEdit = false; this.renderHistory(); } }, "‹ 목록으로"));
     let s = null; try { s = await window.FitlogDB.DB.get("workoutSessions", id); } catch (e) { console.warn(e); }
     if (!s) { root.appendChild(el("div", { class: "placeholder", text: "기록을 찾을 수 없어요." })); return; }
     const tpl = this.template(s.templateId);
@@ -572,7 +572,28 @@ const App = {
       }
       root.appendChild(card);
     });
-    if (s.cardio) root.appendChild(el("div", { class: "card" }, [el("div", { class: "ex-name", text: "유산소" }), el("div", { class: "guide-line", text: `경사 ${s.cardio.incline} · ${s.cardio.speedKmh}km/h · ${s.cardio.durationMinutes}분` })]));
+    if (s.cardio) {
+      const cd = el("div", { class: "card" });
+      if (this.histCardioEdit) {
+        const draft = { incline: s.cardio.incline, speedKmh: s.cardio.speedKmh, durationMinutes: s.cardio.durationMinutes };
+        cd.appendChild(el("div", { class: "ex-name", text: "유산소" }));
+        const f = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(draft, key, { step, min: 0, unit: "" })]);
+        cd.appendChild(el("div", { class: "cardio-grid" }, [f("incline", "경사", 1), f("speedKmh", "속도 (km/h)", 0.1), f("durationMinutes", "시간 (분)", 1)]));
+        const save = async () => {
+          s.cardio.incline = draft.incline; s.cardio.speedKmh = draft.speedKmh; s.cardio.durationMinutes = draft.durationMinutes; s.updatedAt = new Date().toISOString();
+          try { await window.FitlogDB.DB.put("workoutSessions", s); } catch (e) { console.error(e); }
+          this.histCardioEdit = false; this.renderHistoryDetail(id);
+        };
+        cd.appendChild(el("div", { class: "gedit-actions", style: "grid-template-columns:1fr auto" }, [
+          el("button", { class: "btn btn-primary", onclick: save }, "수정 저장"),
+          el("button", { class: "btn btn-ghost", onclick: () => { this.histCardioEdit = false; this.renderHistoryDetail(id); } }, "취소"),
+        ]));
+      } else {
+        cd.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name", text: "유산소" }), el("button", { class: "btn btn-sm", onclick: () => { this.histCardioEdit = true; this.renderHistoryDetail(id); } }, "수정")]));
+        cd.appendChild(el("div", { class: "guide-line", text: `경사 ${s.cardio.incline} · ${s.cardio.speedKmh}km/h · ${s.cardio.durationMinutes}분` }));
+      }
+      root.appendChild(cd);
+    }
   },
 
   // ---------------- 가이드 편집 (Phase 3) ----------------

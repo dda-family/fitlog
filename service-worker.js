@@ -3,7 +3,7 @@
  * assets/sounds, assets/video: network-first (사운드 교체 즉시 반영)
  * 앱 파일 수정 시 CACHE_VERSION을 올린다.
  */
-const CACHE_VERSION = "fitlog-v7";
+const CACHE_VERSION = "fitlog-v8";
 const SHELL = [
   "./", "./index.html", "./styles.css",
   "./app.js", "./db.js", "./timer.js", "./evaluation.js", "./backup.js", "./ai-bridge.js",
