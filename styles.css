@@ -1,0 +1,604 @@
+/* Fitlog styles — Phase 1 구현본. (UX_SPEC §19)
+   방향: 단순 배경 / 얕은 카드 / 큰 터치 영역 / 세로 우선 / Safe Area.
+   시그니처: 크고 읽기 쉬운 타이머 숫자 + 한 손 조작 스텝퍼. 장식 최소화. */
+
+:root {
+  --bg: #111318;
+  --surface: #1a1d24;
+  --surface-2: #232733;
+  --text: #e9ecf0;
+  --text-dim: #9aa1ad;
+  --text-faint: #656c7a;
+  --border: #2b303b;
+  --accent: #4ade80;     /* 진행/완료 */
+  --accent-dim: #1c3a29;
+  --warn: #fbbf24;       /* 증량 후보/주의 */
+  --danger: #f87171;     /* 부족/삭제 */
+  --blue: #60a5fa;
+  --tap: 52px;           /* 최소 터치 크기 */
+  --radius: 14px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --num: "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  -webkit-text-size-adjust: 100%; line-height: 1.4;
+}
+body { padding-top: env(safe-area-inset-top, 0px); }
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+/* 뷰 영역: 하단 탭바 높이만큼 여백, 최소 화면 높이 확보(유산소 등 항목 적을 때 탭바 위로 올라오는 현상 방지) */
+/* ★ env()를 CSS변수 경유 없이 직접 써야 iOS PWA 첫 렌더 시 safe-area 지연 계산을 피할 수 있다 */
+#app { padding: 14px 14px calc(84px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin: 0 auto;
+  min-height: calc(100dvh - var(--safe-top)); }
+.view[hidden] { display: none; }
+
+/* ---------- 오늘 헤더 ---------- */
+.today-head { margin: 4px 2px 16px; }
+.today-date { color: var(--text-dim); font-size: 15px; }
+.today-title { font-size: 26px; font-weight: 700; margin: 2px 0 12px; letter-spacing: -0.02em; }
+.today-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  min-height: var(--tap); padding: 0 18px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:active { transform: scale(0.985); }
+.btn-primary { background: var(--accent); color: #08130c; border-color: transparent; }
+.btn-ghost { background: transparent; }
+.btn-block { width: 100%; }
+.btn-lg { min-height: 60px; font-size: 18px; }
+.btn-sm { min-height: 40px; font-size: 14px; padding: 0 12px; }
+.btn:disabled { opacity: 0.45; }
+
+/* ---------- 운동 카드 ---------- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 14px; }
+.card.done { opacity: 0.72; }
+.card.skipped { opacity: 0.5; }
+.card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ex-name { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.ex-name .opt { font-size: 12px; color: var(--text-faint); font-weight: 600; margin-left: 6px; }
+.guide-line { color: var(--text-dim); font-size: 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.last-line { color: var(--text-faint); font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* 상태 배지 */
+.badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.completed { background: var(--accent-dim); color: var(--accent); }
+.badge.progression_candidate { background: #3a3218; color: var(--warn); }
+.badge.volume_under { background: #3a2020; color: var(--danger); }
+.badge.skipped { background: var(--surface-2); color: var(--text-faint); }
+
+/* ---------- 세트 행 + 스텝퍼 ---------- */
+.sets { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.set-row { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 8px; align-items: center; }
+.set-row.warmup { opacity: 0.7; }
+.set-no { color: var(--text-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+.set-row.done .set-no { color: var(--accent); }
+
+.stepper { display: grid; grid-template-columns: var(--tap) 1fr var(--tap); align-items: center;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.stepper button { min-height: 48px; border: 0; background: transparent; color: var(--text); font-size: 24px; font-weight: 500; }
+.stepper button:active { background: var(--border); }
+.stepper input { width: 100%; min-height: 48px; text-align: center; border: 0; background: transparent; color: var(--text);
+  font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper .unit { font-size: 12px; color: var(--text-faint); font-weight: 600; }
+.stepper.locked { opacity: 0.85; }
+
+.set-complete { grid-column: 1 / -1; margin-top: 2px; }
+.set-recorded { grid-column: 1 / -1; color: var(--text-dim); font-size: 14px; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 8px; }
+.set-recorded .chk { color: var(--accent); }
+
+/* 워밍업 영역 */
+.warmup { margin-top: 12px; border: 1px dashed var(--border); border-radius: 12px; padding: 10px 12px; }
+.warmup summary { color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+.warmup summary::-webkit-details-marker { display: none; }
+.warmup summary::before { content: "▸ "; color: var(--text-faint); }
+.warmup[open] summary::before { content: "▾ "; }
+.warmup .sug { color: var(--text-faint); font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.warmup .sug li { margin: 2px 0; }
+
+.card-foot { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+.link { background: none; border: 0; color: var(--text-faint); font-size: 13px; padding: 8px 4px; }
+.link.danger { color: var(--danger); }
+
+/* ---------- 상단 고정 타이머 ---------- */
+.timer-bar {
+  position: fixed; top: var(--safe-top); left: 0; right: 0; z-index: 20;
+  text-align: center; padding: 10px; font-variant-numeric: tabular-nums; font-family: var(--num);
+  font-size: 22px; font-weight: 700; background: var(--surface-2); border-bottom: 1px solid var(--border);
+}
+.timer-bar[hidden] { display: none; }
+.timer-bar.ended { color: var(--accent); }
+
+/* 인라인 큰 카운트다운 (활성 세트 아래) */
+.countdown { text-align: center; padding: 10px 0 2px; }
+.countdown .cd-num { font-family: var(--num); font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; line-height: 1; }
+.countdown .cd-label { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.countdown.ended .cd-num { color: var(--accent); }
+
+/* ---------- 종료 요약 ---------- */
+.summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.summary h3 { margin: 0 0 10px; font-size: 17px; }
+.summary .row { display: flex; justify-content: space-between; padding: 6px 0; color: var(--text-dim); font-size: 15px; border-bottom: 1px solid var(--border); }
+.summary .row:last-of-type { border-bottom: 0; }
+.cardio-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.cardio-fields label { font-size: 12px; color: var(--text-faint); display: block; margin-bottom: 4px; }
+.cardio-fields input { width: 100%; min-height: 46px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 600; }
+
+/* ---------- 설정 ---------- */
+.settings-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; margin-bottom: 14px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: 0; }
+.settings-row .k { font-size: 15px; }
+.settings-row .sub { font-size: 12px; color: var(--text-faint); }
+.settings-row input[type="number"] { width: 84px; min-height: 44px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 700; }
+.section-label { color: var(--text-faint); font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; margin: 18px 2px 8px; }
+
+.placeholder { color: var(--text-faint); text-align: center; padding: 48px 20px; font-size: 14px; }
+.select-wrap select { min-height: var(--tap); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-size: 15px; padding: 0 12px; }
+
+/* ---------- 하단 네비게이션 ---------- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--surface); border-top: 1px solid var(--border);
+  /* env()를 CSS 변수 경유 없이 직접 사용 — iOS PWA 첫 렌더 시 safe-area 지연 계산 방지 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.tab { min-height: 60px; border: 0; background: transparent; color: var(--text-faint); font-size: 11px; font-weight: 600; }
+.tab[aria-current="true"] { color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+
+/* ===== Phase 1 개선분: 날짜/추가/워밍업/추가세트/유산소 ===== */
+
+/* 헤더 상단 행: 날짜(탭) + 운동 추가 */
+.head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+.today-date-btn { background: transparent; border: 0; color: var(--text-dim); font-size: 15px; padding: 4px 0; display: inline-flex; align-items: center; }
+.today-date-btn .edit-hint { color: var(--accent); font-size: 13px; }
+.today-date-btn:active { opacity: 0.7; }
+.add-ex { background: var(--surface-2); }
+
+/* 과거 날짜 기록 중 배지 */
+.past-date-badge { background: #2a2010; border: 1px solid #5a4010; color: #e0a030;
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; text-align: center; margin-bottom: 8px; }
+
+/* 날짜 선택 모달 내 필드 행 */
+.date-modal-field { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.date-modal-field .range-date { flex: 1; }
+.date-modal-field .btn-sm { flex-shrink: 0; }
+
+.muted { color: var(--text-faint); font-size: 13px; }
+.wait { grid-column: 2 / -1; color: var(--text-faint); font-size: 13px; }
+
+/* 즉석 운동 이름 입력 */
+.ex-name-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 17px; font-weight: 700; padding: 10px 12px; }
+.ex-name-input::placeholder { color: var(--text-faint); font-weight: 500; font-size: 14px; }
+
+/* + 세트 추가 버튼 */
+.add-set { width: 100%; margin-top: 4px; border-style: dashed; }
+
+/* 추가 세트(목표 초과) 표시 */
+.set-row.done.extra .set-no { color: var(--warn); }
+.set-row.done.extra .set-recorded { color: var(--text-dim); }
+.set-row.extra-active { background: #201d14; border: 1px solid #3a3218; border-radius: 12px; padding: 8px; }
+.set-row.extra-active .set-no { color: var(--warn); }
+
+/* ===== 워밍업: 본세트와 확실히 다르게 ===== */
+.warmup-box { margin-top: 12px; margin-bottom: 4px; border: 1px dashed #4a4636; border-radius: 12px;
+  padding: 10px 12px; background: rgba(251,191,36,0.04); }
+.warmup-head { display: flex; align-items: center; gap: 8px; color: var(--warn); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; }
+.w-tag { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 6px;
+  background: #3a3218; color: var(--warn); font-size: 11px; font-weight: 800; }
+.w-sug { color: var(--text-faint); font-size: 12px; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.set-row.warmup { grid-template-columns: 24px 1fr 1fr 40px; opacity: 0.95; }
+.set-row.warmup .set-no { color: var(--warn); font-weight: 700; }
+.set-row.warmup .stepper { background: #1d1b16; border-color: #3a3418; }
+.row-x { min-height: 44px; border: 0; background: transparent; color: var(--text-faint); font-size: 15px; }
+
+/* ===== 유산소 카드 ===== */
+.card.cardio .cardio-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.cardio-field label { display: block; font-size: 12px; color: var(--text-faint); margin-bottom: 4px; }
+.card.cardio .stepper { grid-template-columns: 40px 1fr 40px; }
+.card.cardio .stepper button { min-height: 44px; font-size: 20px; }
+.card.cardio .stepper input { font-size: 16px; }
+.card.cardio .stepper .unit { display: none; }
+
+.inline-input { display: flex; align-items: center; gap: 6px; }
+.saved-note { border-color: var(--accent) !important; }
+
+/* ===== Phase 2: 날짜 화살표 / 워밍업 자동기록 표시 / 기록 화면 ===== */
+
+/* 날짜: 화살표만 + 탭 유도 */
+.today-date-btn { color: var(--text-dim); border-bottom: 1px dashed var(--border); padding-bottom: 2px; }
+.today-date-btn .edit-hint { color: var(--text-faint); font-size: 16px; margin-left: 8px; }
+
+/* 워밍업 자동기록 표시 */
+.set-row.warmup { grid-template-columns: 24px 1fr 1fr auto; }
+.w-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-left: 6px; }
+.w-saved { color: var(--accent); font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* 기록 목록 */
+.hist-row { width: 100%; display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 14px; margin-bottom: 10px; text-align: left; }
+.hist-row:active { background: var(--surface-2); }
+.hist-row .h-date { color: var(--text-dim); font-size: 14px; font-variant-numeric: tabular-nums; }
+.hist-row .h-name { color: var(--text); font-size: 16px; font-weight: 600; }
+.hist-row .h-status { color: var(--text-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.danger-btn { color: var(--danger); border-color: #3a2020; }
+
+/* ===== Phase 3: 가이드 편집 ===== */
+.gedit .order-btns { display: flex; gap: 6px; }
+.gedit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.gedit-field label { display: block; font-size: 12px; color: var(--text-faint); margin-bottom: 4px; }
+.gedit-field input { width: 100%; min-height: 46px; text-align: center; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; font-weight: 600; }
+.gedit-field .with-btn { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.gedit-field .with-btn input { text-align: center; }
+.gedit-toggles { display: flex; gap: 18px; margin: 4px 2px 12px; }
+.gedit-toggle { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.gedit-toggle input { width: 22px; height: 22px; }
+.gedit-actions { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-top: 14px; }
+
+/* ===== A: 템플릿 액션 / C: 통계 ===== */
+.tpl-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 2px 14px; }
+.stats .prog-list { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; }
+.stats .prog-label { color: var(--warn); font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.stats .prog-names { color: var(--text); font-size: 14px; }
+
+/* ===== Phase 4: AI 코치 ===== */
+.ai-h { margin: 0 0 6px; font-size: 16px; }
+.ai-textarea { width: 100%; margin-top: 10px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 13px; font-family: var(--num); padding: 10px; resize: vertical; line-height: 1.5; }
+.ai-err { color: var(--danger); font-size: 14px; margin-top: 10px; }
+.ai-summary { color: var(--text); font-size: 14px; margin: 12px 0 6px; padding: 10px; background: var(--surface-2); border-radius: 10px; }
+.ai-change { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px; margin-top: 10px; }
+.ai-change input { width: 22px; height: 22px; margin-top: 2px; flex: 0 0 auto; }
+.ai-change-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.ai-action { font-size: 11px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); padding: 2px 7px; border-radius: 999px; }
+.ai-change-diff { color: var(--accent); font-size: 14px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.ai-reason { color: var(--text-dim); font-size: 13px; margin-top: 3px; }
+
+/* ===== 아이폰 실기 수정: 스텝퍼 잘림 / 탭바 하단 고정 ===== */
+
+/* 문서가 화면보다 짧아도 화면 전체를 채워서 fixed 탭바가 화면 맨 아래에 고정되게 */
+html { height: 100%; }
+body { min-height: 100vh; min-height: 100dvh; }
+
+/* 스텝퍼: 숫자+단위를 한 칸으로 묶고, +/- 버튼 폭을 줄여 숫자 공간 확보 */
+.stepper { grid-template-columns: 46px 1fr 46px; }
+.set-row { grid-template-columns: 26px 1fr 1fr; gap: 7px; }
+.stepper-mid { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px; padding: 0 6px; min-width: 0; }
+.stepper-mid input { width: 100%; min-width: 0; text-align: right; font-size: 17px; padding: 0; }
+.stepper .unit { font-size: 11px; }
+/* 워밍업 행은 자체 4열 유지(삭제 버튼 포함) */
+.set-row.warmup { grid-template-columns: 22px 1fr 1fr 36px; gap: 6px; }
+/* 유산소 카드는 단위 숨기고 넉넉한 폭 유지 */
+.card.cardio .stepper-mid { grid-template-columns: 1fr; }
+
+/* ===== 드래그 다이얼 (입력 UX 개편) ===== */
+.dial { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+  min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: ns-resize; position: relative; overflow: hidden; }
+.dial.active { border-color: var(--accent); background: #1c2620; }
+.dial-hint { font-size: 8px; line-height: 1.1; color: var(--text-faint); opacity: 0.45; }
+.dial.active .dial-hint { color: var(--accent); opacity: 0.8; }
+.dial-mid { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
+.dial-num { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.dial-unit { font-size: 11px; color: var(--text-faint); font-weight: 600; }
+.dial-input { width: 70px; max-width: 100%; text-align: center; font-size: 20px; font-weight: 800;
+  background: transparent; border: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* 완료 세트 수정 버튼 */
+.set-row.done { grid-template-columns: 26px 1fr auto; }
+.set-edit { min-height: 40px; padding: 0 12px; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-dim); border-radius: 10px; font-size: 13px; font-weight: 600; }
+.set-edit:active { background: var(--border); }
+
+/* 유산소: 다이얼로 바뀌었으니 3칸 균등 + 단위 보이게 */
+.card.cardio .cardio-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.card.cardio .dial-unit { display: inline; }
+
+/* ===== 1단계 A: 다이얼 분리(숫자 탭 / 우측 그립 드래그) + 정렬 ===== */
+.dial { display: grid; grid-template-columns: 1fr 38px; align-items: stretch;
+  touch-action: auto; cursor: default; min-width: 0; padding: 0; }
+.dial-face { display: flex; align-items: center; justify-content: center; min-width: 0; cursor: text; padding: 4px; }
+.dial-face .dial-input { width: 100%; text-align: center; }
+.dial-grip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-left: 1px solid var(--border); background: var(--surface); color: var(--text-faint);
+  touch-action: none; cursor: ns-resize; -webkit-user-select: none; user-select: none; }
+.dial.active { border-color: var(--accent); }
+.dial.active .dial-grip { color: var(--accent); background: #1c2620; }
+.dial-grip .g-up, .dial-grip .g-dn { font-size: 9px; line-height: 1; }
+.dial-hint { display: none; }
+
+/* 완료 세트 행: 수정 버튼 인라인 정렬(아래로 안 내려가게) */
+.set-row.done { grid-template-columns: 26px 1fr auto; align-items: center; }
+.set-row.done .set-recorded { min-width: 0; }
+
+/* 워밍업 행 4열 재정렬 */
+.set-row.warmup { grid-template-columns: 22px 1fr 1fr 34px; gap: 6px; align-items: center; }
+.set-row.warmup .w-actions { flex-direction: column; align-items: center; gap: 2px; padding-left: 0; }
+
+/* 유산소 3칸 균등 */
+.card.cardio .cardio-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* A-4: 알림 테스트 버튼 오른쪽 정렬 (템플릿 선택은 왼쪽) */
+.today-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* ===== 2단계 A-5/A-6 ===== */
+/* 유산소: 단위가 라벨로 갔으니 칸 안 숫자 넉넉히 */
+.card.cardio .cardio-field label { font-size: 11px; }
+.card.cardio .dial-face { padding: 4px 2px; }
+
+/* A-6: 완료 세트 줄 — flex로 인라인 고정(수정 버튼 아래로 안 내려감) */
+.set-row.done { display: flex; align-items: center; gap: 10px; }
+.set-row.done .set-no { flex: 0 0 auto; width: 22px; }
+.set-row.done .set-recorded { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-row.done .set-edit { flex: 0 0 auto; }
+
+/* ===== 2단계 B: 메모 / 기록 상세 ===== */
+.memo-row { margin-top: 10px; }
+.memo-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; }
+.memo-input::placeholder { color: var(--text-faint); }
+.memo-line { color: var(--warn); font-size: 13px; margin-top: 4px; }
+
+/* 워밍업 하단: 추가 + 초기화 나란히 */
+.w-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+
+/* ===== 개선(2026-09): 분석 기간 선택 / 유산소 종목 / 근력·유산소 추가 ===== */
+/* 종목 추가 버튼 2개 나란히 */
+.add-ex-row { display: flex; gap: 8px; margin-top: 2px; }
+.add-ex-row .btn { flex: 1 1 0; }
+
+/* 분석 기간 선택 컨트롤 (기록·AI 공용) */
+.range-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px; margin: 0 0 12px; }
+.range-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.range-row .range-lbl { color: var(--text-dim); font-size: 13px; }
+.range-sep { color: var(--text-faint); }
+.range-date { flex: 1 1 40%; min-width: 120px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 15px; padding: 8px 10px; min-height: 40px;
+  font-variant-numeric: tabular-nums; }
+.range-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.range-err { color: var(--danger); font-size: 13px; margin-top: 8px; }
+
+/* 컴팩트 한 줄 기간 바 (섹션 5) */
+.range-box { background: transparent; border: 0; padding: 0; margin: 0 0 12px; }
+.range-bar { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); font-size: 15px; padding: 0 14px; text-align: left; }
+.range-bar:active { transform: scale(0.99); }
+.range-bar-ico { font-size: 15px; }
+.range-bar-txt { flex: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.range-bar-caret { color: var(--text-faint); font-size: 12px; }
+
+/* 바텀시트 모달 (기간 설정 등) */
+.modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+  /* env() 직접 사용 — CSS변수 경유 시 iOS PWA 첫 렌더에서 0으로 잡히는 문제 방지 */
+  padding: 0 0 env(safe-area-inset-bottom, 0px); animation: modal-fade 0.15s ease; }
+@keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+.modal-sheet { width: 100%; max-width: 640px; background: var(--surface);
+  border-top-left-radius: 18px; border-top-right-radius: 18px; border: 1px solid var(--border);
+  /* env() 직접 사용 — modal-overlay가 이미 safe-area만큼 올라오므로 여기서는 고정 18px만 */
+  padding: 18px 16px 18px; animation: modal-rise 0.18s ease; }
+@keyframes modal-rise { from { transform: translateY(24px); } to { transform: translateY(0); } }
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.range-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.range-cell { display: flex; flex-direction: column; gap: 6px; }
+.range-cell label { color: var(--text-dim); font-size: 13px; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.modal-actions .btn { min-height: 48px; }
+.modal-close { width: 100%; margin-top: 10px; background: transparent; border: 0; color: var(--text-faint);
+  font-size: 14px; min-height: 40px; }
+
+/* ===== 운동 추가 플로우 ===== */
+.add-ex-main { width: 100%; }
+
+/*
+ * addex-sheet: flex column, JS로 height 고정 (visualViewport 기반, v20).
+ * max-height 는 사용하지 않는다 — 결과 개수에 따라 시트가 줄어드는 원인이므로 제거.
+ * JS(openAddExerciseFlow)가 visualViewport.height * 0.86 을 inline style로 고정하고,
+ * 키보드 resize 이벤트마다 재계산하므로 CSS에서는 height를 설정하지 않는다.
+ * 헤더/검색(고정) + 결과 목록(스크롤) 분리는 addex-fixed-top + addex-scroll-list 구조로.
+ */
+.addex-sheet {
+  display: flex; flex-direction: column;
+  /* height 는 JS inline style(visualViewport)로 결정 — CSS 값 없음 */
+  padding-top: 8px;
+  /* ★ modal-sheet 공통 padding-bottom(safe-area 포함)을 override.
+   * addex-sheet는 flex column으로 내부 스크롤을 관리하므로
+   * 하단 패딩이 flex 공간을 잠식하면 scroll-list 높이가 줄어들어 검색창이 불안정해진다.
+   * addex-scroll-list 안에 충분한 padding-bottom으로 대체한다. */
+  padding-bottom: 0;
+  position: relative;
+  /* sheet 자체는 scroll 없음 — 결과 목록(addex-scroll-list)만 스크롤 */
+  overflow: hidden;
+}
+
+/* 고정 타이틀 헤더 (전 화면 공통) */
+.addex-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;          /* fixed-top이 바로 이어진다 */
+  flex-shrink: 0;            /* 키보드가 올라와도 찌그러지지 않음 */
+}
+.addex-title { flex: 1; text-align: center; font-size: 16px; font-weight: 700; }
+.addex-back, .addex-x { background: transparent; border: 0; color: var(--text-dim); font-size: 22px; min-width: 40px; min-height: 40px; line-height: 1; }
+.addex-back { font-size: 26px; }
+.addex-back-spacer, .addex-x { min-width: 40px; }
+
+/*
+ * 고정 검색/필터 영역: 스크롤 컨테이너 밖에 위치해 결과 개수가 바뀌어도 움직이지 않음.
+ * addex-sheet 직속 자식으로 addex-head 다음에 렌더.
+ */
+.addex-fixed-top {
+  flex-shrink: 0;            /* 절대 압축되지 않음 */
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 0 6px;
+  background: var(--surface);
+  /* 구분선: 고정 영역과 스크롤 영역 경계 */
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+/* 스크롤되는 결과 목록 영역 */
+.addex-scroll-list {
+  flex: 1 1 0;               /* 남은 높이를 모두 차지 */
+  min-height: 0;             /* flex 자식이 넘치지 않도록 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-top: 4px;
+  /* addex-sheet의 padding-bottom:0 override를 보완 — 마지막 항목 하단 여백 확보 */
+  padding-bottom: 16px;
+}
+
+/* 진입 화면(entry)·상세(detail) 전용 스크롤 body: 검색 없는 화면에서 사용 */
+.addex-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-top: 12px;
+}
+
+.addex-section-label { font-size: 12px; font-weight: 700; color: var(--text-faint); letter-spacing: 0.03em; margin: 2px 2px 0; }
+.addex-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.addex-menu-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600; padding: 0 16px; }
+.addex-menu-btn:active { opacity: 0.7; }
+.addex-arrow { color: var(--text-faint); font-size: 20px; }
+.addex-create-btn { justify-content: center; border-style: dashed; color: var(--accent); }
+
+/* 검색 입력창 */
+.addex-search { width: 100%; min-height: 48px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 16px; padding: 0 14px; }
+/* focus 시 border 강조 (iOS에서 outline 대신) */
+.addex-search:focus { outline: none; border-color: var(--accent); }
+
+.addex-textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 15px; padding: 10px 12px; resize: vertical; min-height: 56px; }
+.addex-hint { color: var(--text-faint); font-size: 12.5px; line-height: 1.4; margin: 0 2px; }
+.addex-note { color: var(--text-dim); font-size: 12.5px; line-height: 1.45; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.addex-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.addex-chips-region { margin-top: 0; }
+.addex-chip { min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--surface-2);
+  border: 1px solid var(--border); color: var(--text-dim); font-size: 14px; }
+.addex-chip.on { background: var(--accent); border-color: var(--accent); color: #08130d; font-weight: 700; }
+.addex-list { display: flex; flex-direction: column; }
+.addex-item { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+.addex-item:last-child { border-bottom: 0; }
+.addex-item-main { flex: 1; min-width: 0; }
+.addex-item-main.tappable { cursor: pointer; }
+.addex-item-name { font-size: 15.5px; color: var(--text); font-weight: 600; }
+.addex-item-sub { font-size: 12.5px; color: var(--text-faint); margin-top: 2px; }
+.addex-add-btn { flex: 0 0 auto; min-width: 44px; min-height: 44px; border-radius: 10px; background: var(--surface-2);
+  border: 1px solid var(--border); color: var(--accent); font-size: 22px; font-weight: 600; }
+.addex-add-btn:active { opacity: 0.7; }
+.addex-add-btn.wide { min-width: auto; padding: 0 14px; font-size: 14px; font-weight: 700; }
+.addex-added { flex: 0 0 auto; color: var(--text-faint); font-size: 12.5px; padding: 0 6px; }
+.addex-added-lg { text-align: center; color: var(--text-faint); font-size: 14px; padding: 14px; }
+.addex-empty { color: var(--text-faint); font-size: 14px; text-align: center; padding: 24px 12px; }
+.addex-field { display: flex; flex-direction: column; gap: 6px; }
+.addex-field label { color: var(--text-dim); font-size: 13px; }
+.addex-sim { display: flex; flex-direction: column; gap: 2px; }
+.addex-sim-title { font-size: 12.5px; font-weight: 700; color: var(--warn); margin: 2px; }
+.addex-err { margin-top: 0; }
+.addex-detail-name { font-size: 20px; font-weight: 700; }
+.addex-detail-meta { color: var(--text-dim); font-size: 13.5px; margin-top: -6px; }
+.addex-detail-parts { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--text); }
+.addex-detail-label { color: var(--text-faint); font-size: 12px; font-weight: 700; }
+.addex-detail-notes { color: var(--text-dim); font-size: 13px; line-height: 1.45; }
+.addex-detail-add { width: 100%; min-height: 52px; margin-top: 4px; }
+.addex-preview { width: 100%; height: 200px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.addex-toast { position: absolute; left: 50%; bottom: calc(18px + var(--safe-bottom)); transform: translateX(-50%);
+  background: rgba(20,28,24,0.96); color: #eafff2; border: 1px solid var(--border); border-radius: 999px;
+  padding: 10px 18px; font-size: 14px; font-weight: 600; z-index: 5; animation: modal-fade 0.15s ease; pointer-events: none; }
+/* 편집 화면 읽기 전용 부위 */
+.gedit-parts { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin: 2px 2px 0;
+  padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+.gedit-parts-label { color: var(--text-faint); font-size: 11.5px; font-weight: 700; }
+.gedit-parts-val { color: var(--text); font-size: 13.5px; }
+.gedit-parts-auto { color: var(--text-faint); font-size: 11px; }
+.gedit-parts.none .gedit-parts-val { color: var(--text-faint); }
+
+/* ===== 근육 히트맵 (컴포넌트 스코프: .fitlog-anatomy) ===== */
+.heat-host { margin: 0 0 14px; }
+.fitlog-anatomy.anat-card { padding: 14px; }
+.fitlog-anatomy .anat-head { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.fitlog-anatomy .anat-svg { display: flex; align-items: center; justify-content: center;
+  min-height: 200px; max-height: 300px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+/* 3D 뷰어(및 뷰어 내부 SVG 대체): 캔버스가 채울 확정 높이를 준다. */
+.fitlog-anatomy .anat-svg.is-3d { display: block; height: 330px; max-height: none; min-height: 260px; }
+.fitlog-anatomy .anat-model { width: auto; height: 280px; max-width: 100%; display: block; background: transparent; }
+.fitlog-anatomy .anat-fade { animation: anat-fade 0.16s ease; }
+@keyframes anat-fade { from { opacity: 0.35; } to { opacity: 1; } }
+.fitlog-anatomy .anat-fallback { color: var(--text-dim); font-size: 13px; text-align: center; padding: 24px 12px; }
+.fitlog-anatomy .anat-viewname { text-align: center; color: var(--text-dim); font-size: 13px; margin: 6px 0 2px; }
+.fitlog-anatomy .anat-navrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 12px; }
+.fitlog-anatomy .anat-nav { min-height: 44px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; }
+.fitlog-anatomy .anat-nav:disabled { opacity: 0.4; }
+.fitlog-anatomy .anat-legend { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+.fitlog-anatomy .lg-swatch { width: 16px; height: 12px; border-radius: 3px; display: inline-block; }
+.fitlog-anatomy .lg-lbl { color: var(--text-dim); font-size: 12px; margin-right: 6px; }
+.fitlog-anatomy .anat-caption { text-align: center; color: var(--text-faint); font-size: 11.5px; margin: 8px 0 4px; line-height: 1.35; }
+.fitlog-anatomy .anat-notice { color: var(--text-dim); font-size: 12px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 8px 0; line-height: 1.4; }
+.fitlog-anatomy .anat-scores-toggle { width: 100%; min-height: 40px; background: transparent; border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text-dim); font-size: 13px; margin-top: 8px; }
+.fitlog-anatomy .anat-scores { margin-top: 8px; }
+.fitlog-anatomy .anat-score-row { display: flex; justify-content: space-between; padding: 6px 2px;
+  font-size: 14px; color: var(--text-dim); border-bottom: 1px solid var(--border); }
+.fitlog-anatomy .anat-score-row:last-child { border-bottom: 0; }
+.fitlog-anatomy .anat-score-row .num { font-variant-numeric: tabular-nums; color: var(--text); }
+
+/* 새 운동 추가 모달 */
+.newex-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.newex-hint { color: var(--text-faint); font-size: 12px; }
+.newex-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.newex-modes .gedit-toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-dim); }
+/* 종목 추가 모달 — 라디오 버튼 한 줄 배치 */
+.newex-modes-row { display: flex; flex-direction: row; gap: 16px; flex-wrap: nowrap; }
+.newex-modes-row .gedit-toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-dim); white-space: nowrap; }
+.region-legend { color: var(--text-faint); font-size: 12px; margin: 2px 0 6px; }
+.region-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 190px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.rchip { font-size: 13px; min-height: 34px; padding: 0 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); }
+.rchip.is-primary { background: #1f4a30; border-color: #2f7a4b; color: #baf0cf; }
+.rchip.is-secondary { background: #4a3a18; border-color: #7a5f2f; color: #f0dcae; }
+.modal-sheet .range-date select, .modal-sheet select.range-date { width: 100%; }
+.gedit-maprow { margin-top: 10px; }
+.gedit-maprow .btn { width: 100%; }
+
+/* 기록 상세 — 전체 삭제(위험) 영역 */
+.hist-danger { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
+.hist-danger .btn.danger-btn { color: var(--danger); border-color: #4a2020; background: #2a1818; }
+.hist-danger .btn.danger-btn:active { transform: scale(0.99); }
+.hist-danger-note { color: var(--text-faint); font-size: 12px; text-align: center; margin-top: 8px; }

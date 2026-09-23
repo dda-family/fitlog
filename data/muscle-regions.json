@@ -1,0 +1,394 @@
+{
+  "schemaVersion": "1.0.0",
+  "packageVersion": "1.0.0",
+  "viewBox": [
+    0,
+    0,
+    320,
+    610
+  ],
+  "views": [
+    {
+      "id": "front",
+      "file": "assets/anatomy/human_front.svg",
+      "angleDegrees": 0,
+      "label_ko": "정면",
+      "center": [
+        160,
+        302.5
+      ],
+      "bodyBoundsY": [
+        24,
+        581
+      ]
+    },
+    {
+      "id": "front_oblique",
+      "file": "assets/anatomy/human_front_oblique.svg",
+      "angleDegrees": 45,
+      "label_ko": "정면 사선",
+      "center": [
+        160,
+        302.5
+      ],
+      "bodyBoundsY": [
+        24,
+        581
+      ]
+    },
+    {
+      "id": "side",
+      "file": "assets/anatomy/human_side.svg",
+      "angleDegrees": 90,
+      "label_ko": "측면",
+      "center": [
+        160,
+        302.5
+      ],
+      "bodyBoundsY": [
+        24,
+        581
+      ]
+    },
+    {
+      "id": "back_oblique",
+      "file": "assets/anatomy/human_back_oblique.svg",
+      "angleDegrees": 135,
+      "label_ko": "후면 사선",
+      "center": [
+        160,
+        302.5
+      ],
+      "bodyBoundsY": [
+        24,
+        581
+      ]
+    },
+    {
+      "id": "back",
+      "file": "assets/anatomy/human_back.svg",
+      "angleDegrees": 180,
+      "label_ko": "후면",
+      "center": [
+        160,
+        302.5
+      ],
+      "bodyBoundsY": [
+        24,
+        581
+      ]
+    }
+  ],
+  "regions": [
+    {
+      "id": "upper_chest",
+      "label_ko": "상부 가슴",
+      "label_en": "Upper Chest",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"upper_chest\"]",
+      "displayRegionIds": [
+        "upper_chest"
+      ],
+      "notes": "대흉근 쇄골부. chest는 나머지 가슴 영역이며 두 ID를 중복 합산하지 않는다."
+    },
+    {
+      "id": "chest",
+      "label_ko": "가슴",
+      "label_en": "Chest",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"chest\"]",
+      "displayRegionIds": [
+        "chest"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "front_delts",
+      "label_ko": "전면 삼각근",
+      "label_en": "Front Delts",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"front_delts\"]",
+      "displayRegionIds": [
+        "front_delts"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "side_delts",
+      "label_ko": "측면 삼각근",
+      "label_en": "Side Delts",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"side_delts\"]",
+      "displayRegionIds": [
+        "side_delts"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "rear_delts",
+      "label_ko": "후면 삼각근",
+      "label_en": "Rear Delts",
+      "visibleViews": [
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"rear_delts\"]",
+      "displayRegionIds": [
+        "rear_delts"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "traps",
+      "label_ko": "승모근",
+      "label_en": "Traps",
+      "visibleViews": [
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"traps\"]",
+      "displayRegionIds": [
+        "traps"
+      ],
+      "notes": "traps=상부 승모근 대표 영역, upper_back=견갑부 대표 영역, mid_back=중앙 등 대표 영역. 겹치는 해부학 구조를 시각화 구획으로 분리."
+    },
+    {
+      "id": "upper_back",
+      "label_ko": "상부 등",
+      "label_en": "Upper Back",
+      "visibleViews": [
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"upper_back\"]",
+      "displayRegionIds": [
+        "upper_back"
+      ],
+      "notes": "traps=상부 승모근 대표 영역, upper_back=견갑부 대표 영역, mid_back=중앙 등 대표 영역. 겹치는 해부학 구조를 시각화 구획으로 분리."
+    },
+    {
+      "id": "mid_back",
+      "label_ko": "중부 등",
+      "label_en": "Mid Back",
+      "visibleViews": [
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"mid_back\"]",
+      "displayRegionIds": [
+        "mid_back"
+      ],
+      "notes": "traps=상부 승모근 대표 영역, upper_back=견갑부 대표 영역, mid_back=중앙 등 대표 영역. 겹치는 해부학 구조를 시각화 구획으로 분리."
+    },
+    {
+      "id": "lats",
+      "label_ko": "광배근",
+      "label_en": "Lats",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"lats\"]",
+      "displayRegionIds": [
+        "lats"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "biceps",
+      "label_ko": "이두근",
+      "label_en": "Biceps",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"biceps\"]",
+      "displayRegionIds": [
+        "biceps"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "triceps",
+      "label_ko": "삼두근",
+      "label_en": "Triceps",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"triceps\"]",
+      "displayRegionIds": [
+        "triceps"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "forearms",
+      "label_ko": "전완근",
+      "label_en": "Forearms",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"forearms\"]",
+      "displayRegionIds": [
+        "forearms"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "abs",
+      "label_ko": "복직근",
+      "label_en": "Abs",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"abs\"]",
+      "displayRegionIds": [
+        "abs"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "obliques",
+      "label_ko": "복사근",
+      "label_en": "Obliques",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side",
+        "back_oblique"
+      ],
+      "svgSelector": "[data-muscle=\"obliques\"]",
+      "displayRegionIds": [
+        "obliques"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "glutes",
+      "label_ko": "둔근",
+      "label_en": "Glutes",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"glutes\"]",
+      "displayRegionIds": [
+        "glutes"
+      ],
+      "notes": "대둔근과 중·소둔근을 하나의 표시 그룹으로 묶음. 힙 어브덕션은 외측 둔근 동작으로 매핑."
+    },
+    {
+      "id": "quads",
+      "label_ko": "대퇴사두근",
+      "label_en": "Quads",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side"
+      ],
+      "svgSelector": "[data-muscle=\"quads\"]",
+      "displayRegionIds": [
+        "quads"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "hamstrings",
+      "label_ko": "햄스트링",
+      "label_en": "Hamstrings",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"hamstrings\"]",
+      "displayRegionIds": [
+        "hamstrings"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "calves",
+      "label_ko": "종아리",
+      "label_en": "Calves",
+      "visibleViews": [
+        "front_oblique",
+        "side",
+        "back_oblique",
+        "back"
+      ],
+      "svgSelector": "[data-muscle=\"calves\"]",
+      "displayRegionIds": [
+        "calves"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "adductors",
+      "label_ko": "내전근",
+      "label_en": "Adductors",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "back_oblique"
+      ],
+      "svgSelector": "[data-muscle=\"adductors\"]",
+      "displayRegionIds": [
+        "adductors"
+      ],
+      "notes": "표시 영역은 기능적 시각화이며 표층 해부학의 엄밀한 경계를 의미하지 않음."
+    },
+    {
+      "id": "hip_flexors",
+      "label_ko": "고관절 굴곡근",
+      "label_en": "Hip Flexors",
+      "visibleViews": [
+        "front",
+        "front_oblique",
+        "side",
+        "back_oblique"
+      ],
+      "svgSelector": "[data-muscle=\"hip_flexors\"]",
+      "displayRegionIds": [
+        "hip_flexors"
+      ],
+      "notes": "심부 장요근 등을 전방 고관절 위치에 투영한 기능적 영역. 실제 표층 근육 모양이 아님."
+    }
+  ]
+}

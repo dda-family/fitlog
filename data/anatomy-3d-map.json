@@ -1,0 +1,568 @@
+{
+  "schemaVersion": "1.0.0",
+  "packageVersion": "2.0.0",
+  "model": "assets/anatomy/human_3d.glb",
+  "frontAxis": "+Z",
+  "upAxis": "+Y",
+  "units": "metres",
+  "neutralColor": "#46535f",
+  "neutralNodeNames": [
+    "neutral_body"
+  ],
+  "mappings": [
+    {
+      "muscleId": "upper_chest",
+      "nodeNames": [
+        "muscle_upper_chest"
+      ],
+      "materialNames": [
+        "upper_chest"
+      ],
+      "parts": [
+        {
+          "name": "torso_0",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_1",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "chest",
+      "nodeNames": [
+        "muscle_chest"
+      ],
+      "materialNames": [
+        "chest"
+      ],
+      "parts": [
+        {
+          "name": "torso_2",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_3",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "obliques",
+      "nodeNames": [
+        "muscle_obliques"
+      ],
+      "materialNames": [
+        "obliques"
+      ],
+      "parts": [
+        {
+          "name": "torso_4",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_5",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "abs",
+      "nodeNames": [
+        "muscle_abs"
+      ],
+      "materialNames": [
+        "abs"
+      ],
+      "parts": [
+        {
+          "name": "torso_6",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_7",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_8",
+          "vertexStart": 770,
+          "vertexCount": 385,
+          "triangleStart": 1440,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_9",
+          "vertexStart": 1155,
+          "vertexCount": 385,
+          "triangleStart": 2160,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_10",
+          "vertexStart": 1540,
+          "vertexCount": 385,
+          "triangleStart": 2880,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_11",
+          "vertexStart": 1925,
+          "vertexCount": 385,
+          "triangleStart": 3600,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "hip_flexors",
+      "nodeNames": [
+        "muscle_hip_flexors"
+      ],
+      "materialNames": [
+        "hip_flexors"
+      ],
+      "parts": [
+        {
+          "name": "torso_12",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_13",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "traps",
+      "nodeNames": [
+        "muscle_traps"
+      ],
+      "materialNames": [
+        "traps"
+      ],
+      "parts": [
+        {
+          "name": "torso_14",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_15",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "upper_back",
+      "nodeNames": [
+        "muscle_upper_back"
+      ],
+      "materialNames": [
+        "upper_back"
+      ],
+      "parts": [
+        {
+          "name": "torso_16",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_17",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "mid_back",
+      "nodeNames": [
+        "muscle_mid_back"
+      ],
+      "materialNames": [
+        "mid_back"
+      ],
+      "parts": [
+        {
+          "name": "torso_18",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_19",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "lats",
+      "nodeNames": [
+        "muscle_lats"
+      ],
+      "materialNames": [
+        "lats"
+      ],
+      "parts": [
+        {
+          "name": "torso_20",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_21",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "glutes",
+      "nodeNames": [
+        "muscle_glutes"
+      ],
+      "materialNames": [
+        "glutes"
+      ],
+      "parts": [
+        {
+          "name": "torso_22",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "torso_23",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "front_delts",
+      "nodeNames": [
+        "muscle_front_delts"
+      ],
+      "materialNames": [
+        "front_delts"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_0",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_0",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "side_delts",
+      "nodeNames": [
+        "muscle_side_delts"
+      ],
+      "materialNames": [
+        "side_delts"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_1",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_1",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "rear_delts",
+      "nodeNames": [
+        "muscle_rear_delts"
+      ],
+      "materialNames": [
+        "rear_delts"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_2",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_2",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "biceps",
+      "nodeNames": [
+        "muscle_biceps"
+      ],
+      "materialNames": [
+        "biceps"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_3",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_3",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "triceps",
+      "nodeNames": [
+        "muscle_triceps"
+      ],
+      "materialNames": [
+        "triceps"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_4",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_4",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "forearms",
+      "nodeNames": [
+        "muscle_forearms"
+      ],
+      "materialNames": [
+        "forearms"
+      ],
+      "parts": [
+        {
+          "name": "arm-1_5",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm-1_6",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_5",
+          "vertexStart": 770,
+          "vertexCount": 385,
+          "triangleStart": 1440,
+          "triangleCount": 720
+        },
+        {
+          "name": "arm1_6",
+          "vertexStart": 1155,
+          "vertexCount": 385,
+          "triangleStart": 2160,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "quads",
+      "nodeNames": [
+        "muscle_quads"
+      ],
+      "materialNames": [
+        "quads"
+      ],
+      "parts": [
+        {
+          "name": "leg-1_0",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "leg1_0",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "adductors",
+      "nodeNames": [
+        "muscle_adductors"
+      ],
+      "materialNames": [
+        "adductors"
+      ],
+      "parts": [
+        {
+          "name": "leg-1_1",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "leg1_1",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "hamstrings",
+      "nodeNames": [
+        "muscle_hamstrings"
+      ],
+      "materialNames": [
+        "hamstrings"
+      ],
+      "parts": [
+        {
+          "name": "leg-1_2",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "leg1_2",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    },
+    {
+      "muscleId": "calves",
+      "nodeNames": [
+        "muscle_calves"
+      ],
+      "materialNames": [
+        "calves"
+      ],
+      "parts": [
+        {
+          "name": "leg-1_3",
+          "vertexStart": 0,
+          "vertexCount": 385,
+          "triangleStart": 0,
+          "triangleCount": 720
+        },
+        {
+          "name": "leg1_3",
+          "vertexStart": 385,
+          "vertexCount": 385,
+          "triangleStart": 720,
+          "triangleCount": 720
+        }
+      ]
+    }
+  ],
+  "bounds": {
+    "min": [
+      -0.3416011333465576,
+      -3.550339533830993e-05,
+      -0.09203489869832993
+    ],
+    "max": [
+      0.3413674831390381,
+      1.8001307249069214,
+      0.11119570583105087
+    ]
+  }
+}
