@@ -1,0 +1,265 @@
+{
+  "schemaVersion": "2.0.0-prototype.1",
+  "threeVersion": "0.180.0",
+  "rig": {
+    "id": "rig17-v1",
+    "src": "assets/shared/human-rig17-v1.glb",
+    "sha256": "43b0dbf1a63626471ce46f0c1c3e942ff8a3538ccb906d761b11f1e46361e6b1",
+    "jointNames": [
+      "pelvis",
+      "spine",
+      "chest",
+      "neck",
+      "head",
+      "shoulder_L",
+      "elbow_L",
+      "wrist_L",
+      "shoulder_R",
+      "elbow_R",
+      "wrist_R",
+      "hip_L",
+      "knee_L",
+      "ankle_L",
+      "hip_R",
+      "knee_R",
+      "ankle_R"
+    ]
+  },
+  "exercises": {
+    "barbell_bench_press": {
+      "catalogId": "barbell_bench_press",
+      "label": "바벨 벤치프레스",
+      "assetMode": "shared",
+      "status": "technical_prototype",
+      "rigId": "rig17-v1",
+      "clip": {
+        "src": "assets/clips/barbell_bench_press.glb",
+        "name": "barbell_bench_press",
+        "duration": 4.8
+      },
+      "embeddedComparison": "assets/clips/barbell_bench_press.embedded-comparison.glb",
+      "equipment": [
+        {
+          "id": "bench",
+          "src": "assets/equipment/bench.glb",
+          "mode": "fixed"
+        },
+        {
+          "id": "barbell",
+          "src": "assets/equipment/barbell.glb",
+          "mode": "twoHand",
+          "sockets": [
+            "grip_L",
+            "grip_R"
+          ],
+          "localGrips": [
+            [
+              0.29,
+              0,
+              0
+            ],
+            [
+              -0.29,
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "camera": {
+        "target": [
+          0,
+          0.62,
+          0
+        ],
+        "height": 2.2,
+        "minWidth": 2.4,
+        "azimuth": 1.0,
+        "elevation": 0.28
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "chest": 1
+        },
+        "secondary": {
+          "front_delts": 0.5,
+          "triceps": 0.5
+        },
+        "minor": {
+          "upper_chest": 0.25
+        }
+      },
+      "cables": [],
+      "contactSamples": "data/barbell_bench_press.contacts.json"
+    },
+    "push_up": {
+      "catalogId": "push_up",
+      "label": "푸시업",
+      "assetMode": "shared",
+      "status": "technical_prototype",
+      "rigId": "rig17-v1",
+      "clip": {
+        "src": "assets/clips/push_up.glb",
+        "name": "push_up",
+        "duration": 4.8
+      },
+      "embeddedComparison": "assets/clips/push_up.embedded-comparison.glb",
+      "equipment": [],
+      "camera": {
+        "target": [
+          0,
+          0.62,
+          0
+        ],
+        "height": 2.2,
+        "minWidth": 2.4,
+        "azimuth": 1.0,
+        "elevation": 0.28
+      },
+      "handPose": "open",
+      "muscles": {
+        "primary": {
+          "chest": 1
+        },
+        "secondary": {
+          "triceps": 0.5,
+          "front_delts": 0.5
+        },
+        "minor": {
+          "abs": 0.25
+        }
+      },
+      "cables": [],
+      "contactSamples": "data/push_up.contacts.json"
+    },
+    "lat_pulldown": {
+      "catalogId": "lat_pulldown",
+      "label": "랫풀다운",
+      "assetMode": "shared",
+      "status": "technical_prototype",
+      "rigId": "rig17-v1",
+      "clip": {
+        "src": "assets/clips/lat_pulldown.glb",
+        "name": "lat_pulldown",
+        "duration": 4.8
+      },
+      "embeddedComparison": "assets/clips/lat_pulldown.embedded-comparison.glb",
+      "equipment": [
+        {
+          "id": "lat_station",
+          "src": "assets/equipment/lat_station.glb",
+          "mode": "fixed"
+        },
+        {
+          "id": "lat_bar",
+          "src": "assets/equipment/lat_bar.glb",
+          "mode": "twoHand",
+          "sockets": [
+            "grip_L",
+            "grip_R"
+          ],
+          "localGrips": [
+            [
+              0.38,
+              0,
+              0
+            ],
+            [
+              -0.38,
+              0,
+              0
+            ]
+          ]
+        }
+      ],
+      "camera": {
+        "target": [
+          0,
+          1.05,
+          0.2
+        ],
+        "height": 2.6,
+        "minWidth": 1.5,
+        "azimuth": 0.75,
+        "elevation": 0.1
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "lats": 1
+        },
+        "secondary": {
+          "biceps": 0.5,
+          "upper_back": 0.5
+        },
+        "minor": {
+          "forearms": 0.25
+        }
+      },
+      "cables": [
+        {
+          "id": "high_cable",
+          "from": {
+            "equipment": "lat_station",
+            "node": "pulley_high",
+            "local": [
+              0,
+              0,
+              0
+            ]
+          },
+          "to": {
+            "equipment": "lat_bar",
+            "local": [
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": 0.0035
+        }
+      ],
+      "contactSamples": "data/lat_pulldown.contacts.json"
+    },
+    "treadmill_incline_walk": {
+      "catalogId": "treadmill_incline_walk",
+      "label": "트레드밀 경사 걷기",
+      "assetMode": "shared",
+      "status": "technical_prototype",
+      "rigId": "rig17-v1",
+      "clip": {
+        "src": "assets/clips/treadmill_incline_walk.glb",
+        "name": "treadmill_incline_walk",
+        "duration": 1.4
+      },
+      "embeddedComparison": "assets/clips/treadmill_incline_walk.embedded-comparison.glb",
+      "equipment": [
+        {
+          "id": "treadmill",
+          "src": "assets/equipment/treadmill.glb",
+          "mode": "fixed"
+        }
+      ],
+      "camera": {
+        "target": [
+          0,
+          1.05,
+          0.08
+        ],
+        "height": 2.45,
+        "minWidth": 1.9,
+        "azimuth": 1.05,
+        "elevation": 0.12
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {},
+        "secondary": {},
+        "minor": {}
+      },
+      "cables": [],
+      "contactSamples": "data/treadmill_incline_walk.contacts.json"
+    }
+  }
+}

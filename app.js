@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v25";
+const APP_VERSION = "v26";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1481,6 +1481,92 @@ const App = {
     this._mountPreview(ctx, wrap, holder, playBtn, c.id);
     return wrap;
   },
+  // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
+  // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
+  // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
+  PROTO_3D_IDS: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk"],
+  openProto3DLab() {
+    const overlay = el("div", { class: "modal-overlay" });
+    const sheet = el("div", { class: "modal-sheet proto-sheet" });
+    const lab = { ctrl: null, closed: false, current: null };
+    const close = () => {
+      lab.closed = true;
+      if (lab.ctrl) { try { lab.ctrl.destroy(); } catch (_) {} lab.ctrl = null; }
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+    };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+    const nameEl = el("div", { class: "proto-name" });
+    const statusEl = el("div", { class: "proto-status", text: "준비 중…" });
+    const holder = el("div", { class: "proto-view" });
+    const playBtn = el("button", { class: "addex-pv-btn", type: "button", disabled: "" }, "일시정지");
+    const legend = el("div", { class: "addex-pv-legend" });
+    const chips = el("div", { class: "addex-chips proto-chips" });
+    const label = (id) => (this.catalogById(id) || {}).label_ko || id;
+    const renderChips = () => {
+      chips.textContent = "";
+      this.PROTO_3D_IDS.forEach((id) => chips.appendChild(el("button", { class: "addex-chip" + (lab.current === id ? " on" : ""), type: "button", onclick: () => pick(id) }, label(id))));
+    };
+    const pick = async (id) => {
+      lab.current = id; renderChips();
+      nameEl.textContent = label(id);
+      const m = this.catalogMappingById(id) || {};
+      const key = (cls, t, obj) => { const ids = Object.keys(obj || {}); return ids.length ? el("span", { class: "addex-pv-key" }, [el("i", { class: "addex-pv-dot " + cls }), t + " " + ids.map((r) => this.regionLabel(r)).join("·")]) : null; };
+      legend.textContent = "";
+      [key("pri", "주요", m.primary), key("sec", "보조", m.secondary)].forEach((n) => n && legend.appendChild(n));
+      if (!legend.childNodes.length) legend.appendChild(el("span", { class: "addex-pv-key", text: "강조 부위 없음(유산소)" }));
+      playBtn.disabled = true; playBtn.textContent = "일시정지";
+      if (!lab.ctrl) return;
+      // 앱 카탈로그 매핑의 primary/secondary 기준으로 강조(minor는 강조하지 않음)
+      const st = await lab.ctrl.select(id, { muscles: { primary: m.primary || {}, secondary: m.secondary || {} } });
+      if (lab.closed || lab.current !== id) return;
+      playBtn.disabled = st !== "ready";
+    };
+    playBtn.addEventListener("click", () => {
+      const c = lab.ctrl; if (!c) return;
+      if (c.isPlaying()) { c.pause(); playBtn.textContent = "재생"; } else { c.play(); playBtn.textContent = "일시정지"; }
+    });
+
+    sheet.appendChild(el("div", { class: "addex-head" }, [
+      el("span", { class: "addex-back-spacer" }),
+      el("div", { class: "addex-title", text: "3D 시제품 시험" }),
+      el("button", { class: "addex-x", type: "button", onclick: close }, "✕"),
+    ]));
+    sheet.appendChild(el("div", { class: "proto-body" }, [
+      el("div", { class: "proto-warn" }, [
+        el("span", { class: "proto-badge", text: "기술 시제품" }),
+        el("span", { text: "품질 검증이 끝나지 않은 시험용 동작이에요. 자세 기준으로 참고하지 말고, 움직임·장비·구도·기기 동작만 확인해 주세요. 정식 운동 미리보기에는 등록되지 않았어요." }),
+      ]),
+      chips,
+      el("div", { class: "proto-titlebar" }, [nameEl, el("span", { class: "proto-status-tag", text: "technical_prototype" })]),
+      holder,
+      el("div", { class: "addex-pv-bar" }, [playBtn, legend]),
+      statusEl,
+    ]));
+    overlay.appendChild(sheet); document.body.appendChild(overlay);
+
+    renderChips();
+    const first = this.PROTO_3D_IDS[0];
+    pick(first);
+    import("./runtime/exercise-prototype-3d.js").then(({ createPrototypePreview }) => {
+      if (lab.closed) return;
+      lab.ctrl = createPrototypePreview(holder, {
+        baseURL: this._appRootURL(),
+        onStatus: ({ state, reason }) => {
+          if (lab.closed || !lab.ctrl) return;
+          const d = state === "ready" ? lab.ctrl.getDiagnostics() : null;
+          statusEl.textContent = state === "ready"
+            ? "로딩 " + d.lastLoadMs + "ms · 장비 " + (d.equipment.length ? d.equipment.join(", ") : "없음") + " · 좌우로 밀면 시점 회전"
+            : (reason || state);
+          statusEl.classList.toggle("err", state === "error" || state === "unavailable");
+        },
+      });
+      pick(lab.current || first);
+    }).catch(() => { if (!lab.closed) { statusEl.textContent = "시제품 모듈을 불러오지 못했어요."; statusEl.classList.add("err"); } });
+  },
   // 카탈로그 행(목록·검색 공용). opts.detail=true면 이름 탭 시 상세로, opts.from은 상세의 뒤로 목적지.
   _addCatalogRow(ctx, c, opts) {
     opts = opts || {};
@@ -1932,6 +2018,11 @@ const App = {
       el("div", { class: "settings-row" }, [el("div", { class: "k", text: "전체 데이터 초기화" }), el("button", { class: "btn btn-sm danger-btn", onclick: () => this.wipeAll() }, "초기화")]),
     ]));
     root.appendChild(el("div", { class: "placeholder", text: this.dbReady ? "기록은 이 기기에만 저장됩니다. 기기를 바꾸거나 백업이 필요하면 JSON으로 내보내 두세요." : "이 브라우저에서 저장을 쓸 수 없어 임시로만 동작합니다." }));
+    root.appendChild(el("div", { class: "section-label", text: "개발자 · 시험 기능" }));
+    root.appendChild(el("div", { class: "settings-group" }, [el("div", { class: "settings-row" }, [
+      el("div", {}, [el("div", { class: "k", text: "3D 시제품 시험" }), el("div", { class: "sub", text: "대표 4종 · 품질 검증 전 기술 시제품" })]),
+      el("button", { class: "btn btn-sm", onclick: () => this.openProto3DLab() }, "열기"),
+    ])]));
     // 버전 정보
     const verRow = el("div", { class: "settings-group", style: "margin-top:12px" }, [
       el("div", { class: "settings-row" }, [el("div", { class: "k", text: "앱 버전" }), el("div", { class: "sub", text: APP_VERSION + (window.FitlogVP ? " · 화면 " + window.FitlogVP.first + "→" + window.innerHeight + "/" + window.FitlogVP.screen + " · 보정 " + window.FitlogVP.nudges : "") })]),

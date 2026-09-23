@@ -259,3 +259,37 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
 - **D23. GLB 캐시는 앱 버전과 함께 교체**: SW에서 `/assets/exercises/`는 캐시에 있으면 캐시를 쓰고, 없으면 받은 뒤 성공한 응답만 저장한다. 설치 때 미리 받지 않고 본 운동만 저장한다. 버전을 올리면 삭제되고 다음에 볼 때 다시 받는다.
 - **배포 제외**: `_astra_review/`는 `.gitignore`에 넣었다. 선택형 어댑터 `exercise-preview-mount.js`는 같은 로직을 app.js에 넣었기 때문에 쓰지 않는다.
 - **검증**: 로컬 `/fitlog/` 하위 경로 + Chromium(SwiftShader) 393×852 터치 환경에서 21개 항목이 PASS했다. iPhone 15 실기기(성능·발열·제스처)는 NOT_TESTED다.
+
+---
+
+## v26 (2026-09-23) — Astra 3D 확장 1단계 대표 4종 시험 통합 (technical_prototype)
+
+- **D24. 시제품은 정식 미리보기와 분리**
+  - 대상: `barbell_bench_press`, `push_up`, `lat_pulldown`, `treadmill_incline_walk`. 상태는 `technical_prototype`이며 품질 승인 전이다.
+  - `EXERCISE_PREVIEWS`와 운동 상세 화면에는 등록하지 않았다. 목록에 3D 배지도 없고 상세에 슬롯도 없다.
+  - 확인 경로: **설정 → 개발자 · 시험 기능 → 3D 시제품 시험 → 열기**
+  - 시험 화면에는 '기술 시제품' 배지와 '품질 검증 전' 안내를 표시한다.
+- **D25. 두 가지 로딩 구조를 함께 쓴다**
+  - 컬 3종은 기존 `runtime/exercise-preview-3d.js`(운동별 완결 GLB)를 그대로 쓴다.
+  - 시제품은 신규 `runtime/exercise-prototype-3d.js`를 쓴다. 공유 인체 1회 로드 + 클립 GLB + 별도 장비 GLB 구조다.
+  - 신규 모듈은 Astra의 `prototype-viewer.js`를 참고해 앱 구조에 맞게 다시 작성했다(통째 교체 아님). 추가한 검사·기능:
+    - 공유 인체 sha256·관절 검사, 클립 트랙 바인딩 검사, 경로 안전성 검사
+    - 운동별 manifest 카메라 적용(좁은 화면에선 높이를 늘려 가로 폭 확보)
+    - 장비 모드 fixed/twoHand/장비 없음, 열린 손
+    - 케이블 양 끝을 manifest의 장비 노드 기준으로 계산(컬용 고정 도르래 좌표 미사용)
+    - 세대 번호로 늦은 결과 폐기, destroy 시 전체 해제
+  - 강조는 앱 카탈로그 매핑의 primary/secondary만 쓴다. minor는 중립색이다.
+- **자산 위치**
+  - 자산: `assets/prototype/stage1/{shared,clips,equipment}/`
+  - manifest: `data/prototype/stage1-manifest.json` (Astra 원본 그대로)
+  - 넣지 않은 것: 비교용 A′ GLB, contacts JSON, `reference/`, `legacy/`, 이미지, 제작 스크립트
+- **SW**: `/assets/prototype/`는 시험 화면에서 요청한 것만 성공 시 저장한다. 미리 받지 않고, 앱 버전을 올리면 함께 교체된다.
+- **배포 제외**: `.gitignore`에 `_astra_stage1/`을 추가했다.
+- **남은 품질 문제(해결되지 않음, Astra 보완 예정)**
+  - 벤치: 어깨·팔 표면 비틀림
+  - 푸시업: 손목·어깨 각짐
+  - 랫풀다운: 오버헤드 어깨·골반 변형, 기둥이 몸을 가림
+  - 경사 걷기: 발 구름 없음, 무릎·골반 접힘, 반복 연결부 속도 불연속
+- **검증**
+  - Chromium(SwiftShader) 393×852·320×568에서 47개 + 기존 회귀 21개 PASS
+  - iPhone 실기기는 NOT_TESTED
