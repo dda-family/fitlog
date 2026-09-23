@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v23";
+const APP_VERSION = "v24";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1363,12 +1363,14 @@ const App = {
       const a = document.activeElement;
       const typing = !!a && sheet.contains(a) && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
       const kb = baseH - vh > 120 || (typing && vh < screen.height - 150);
-      const h = kb ? vh : vh + ((window.FitlogVP && window.FitlogVP.gap) || 0);
       overlay.style.top = (vv ? vv.offsetTop : 0) + "px";
       overlay.style.bottom = "auto";
-      overlay.style.height = h + "px";
+      overlay.style.height = vh + "px";
       overlay.classList.toggle("kb-open", kb);
-      sheet.style.height = Math.max(kb ? Math.floor(h - 8) : Math.floor(h * SHEET_RATIO), MIN_H_PX) + "px";
+      // 키보드가 열리면 보이는 영역을 채우되, 상단은 상태바·다이나믹 아일랜드(safe-area-top) 아래로
+      sheet.style.height = kb
+        ? "max(" + MIN_H_PX + "px, " + Math.floor(vh) + "px - env(safe-area-inset-top, 0px) - 10px)"
+        : Math.max(Math.floor(vh * SHEET_RATIO), MIN_H_PX) + "px";
     };
     const fitSoon = () => { fit(); setTimeout(fit, 120); setTimeout(fit, 350); };
     fit();
@@ -1872,7 +1874,7 @@ const App = {
     root.appendChild(el("div", { class: "placeholder", text: this.dbReady ? "기록은 이 기기에만 저장됩니다. 기기를 바꾸거나 백업이 필요하면 JSON으로 내보내 두세요." : "이 브라우저에서 저장을 쓸 수 없어 임시로만 동작합니다." }));
     // 버전 정보
     const verRow = el("div", { class: "settings-group", style: "margin-top:12px" }, [
-      el("div", { class: "settings-row" }, [el("div", { class: "k", text: "앱 버전" }), el("div", { class: "sub", text: APP_VERSION })]),
+      el("div", { class: "settings-row" }, [el("div", { class: "k", text: "앱 버전" }), el("div", { class: "sub", text: APP_VERSION + (window.FitlogVP ? " · 화면 " + window.FitlogVP.first + "→" + window.innerHeight + "/" + window.FitlogVP.screen + " · 보정 " + window.FitlogVP.nudges : "") })]),
     ]);
     const swRow = el("div", { class: "settings-row" }, [el("div", { class: "k", text: "캐시 버전" }), el("div", { class: "sub", id: "sw-cache-ver", text: "확인 중…" })]);
     verRow.firstChild.after(swRow);

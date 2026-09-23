@@ -46,32 +46,41 @@
   </nav>
 
   <script>
-    // iOS 홈화면 PWA 첫 실행 시 뷰포트가 상단 safe-area만큼 짧게 잡혀 fixed 하단 요소가 떠 있는 버그 보정.
-    // 탭바의 실제 바닥과 화면 바닥 차이를 재서 --vp-gap 으로 내려준다. 정상 상태면 0.
+    // iOS 홈화면 PWA는 첫 실행 때 앱 화면을 상태바 높이만큼 짧게 잡고, 스크롤이 한 번 일어나야 전체 높이로 늘린다.
+    // 내용이 짧아 스크롤이 안 되는 화면(유산소만 있는 오늘 탭 등)에선 그대로 남으므로,
+    // 짧게 잡힌 걸 감지하면 투명 여백을 잠깐 붙여 1px 스크롤했다 되돌려 재계산을 유도한다.
     (function () {
-      var root = document.documentElement, bar = document.getElementById("tabbar"), gap = 0, raf = 0;
       var standalone = window.navigator.standalone === true ||
         (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-      function typing() { var a = document.activeElement; return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable); }
-      function measure() {
-        raf = 0;
-        if (typing()) return;
-        var portrait = window.innerHeight >= window.innerWidth;
-        var screenH = standalone && portrait ? Math.max(screen.height, screen.width) : 0;
-        var expected = Math.max(window.innerHeight, screenH);
-        var natural = bar.getBoundingClientRect().bottom - gap;
-        var next = Math.round(expected - natural);
-        if (!(next > 0 && next <= 100)) next = 0;
-        if (next !== gap) { gap = next; root.style.setProperty("--vp-gap", gap + "px"); }
-        window.FitlogVP.gap = gap;
+      var screenH = Math.max(screen.height, screen.width);
+      var vp = window.FitlogVP = { first: window.innerHeight, screen: screenH, nudges: 0, now: window.innerHeight };
+      var busy = false, tries = 0;
+      function isShort() {
+        if (!standalone || window.innerWidth > window.innerHeight) return false;
+        var d = screenH - window.innerHeight;
+        return d >= 20 && d <= 100;
       }
-      function schedule() { if (!raf) raf = requestAnimationFrame(measure); }
-      window.FitlogVP = { gap: 0, measure: schedule };
-      measure();
-      ["resize", "orientationchange", "pageshow", "load", "scroll", "focusout"].forEach(function (ev) { window.addEventListener(ev, schedule, { passive: true }); });
-      document.addEventListener("visibilitychange", schedule);
-      if (window.visualViewport) window.visualViewport.addEventListener("resize", schedule);
-      [100, 300, 800, 1500, 3000].forEach(function (ms) { setTimeout(schedule, ms); });
+      function nudge() {
+        vp.now = window.innerHeight;
+        if (busy || tries >= 6 || !isShort()) return;
+        var a = document.activeElement;
+        if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
+        busy = true; tries++; vp.nudges++;
+        var y = window.scrollY;
+        var spacer = document.createElement("div");
+        spacer.style.cssText = "position:absolute;left:0;top:0;width:1px;height:calc(100vh + 200px);pointer-events:none;visibility:hidden";
+        document.body.appendChild(spacer);
+        window.scrollTo(0, y + 1);
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+          window.scrollTo(0, y);
+          spacer.remove();
+          busy = false;
+          vp.now = window.innerHeight;
+        }); });
+      }
+      ["load", "pageshow", "resize"].forEach(function (ev) { window.addEventListener(ev, nudge); });
+      document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { tries = 0; nudge(); [300, 1000].forEach(function (ms) { setTimeout(nudge, ms); }); } });
+      [0, 150, 500, 1200, 2500].forEach(function (ms) { setTimeout(nudge, ms); });
     })();
   </script>
 

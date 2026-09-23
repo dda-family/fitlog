@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v23
-- CACHE_VERSION (service-worker.js): fitlog-v23
-- 다음 수정 시 둘 다 v24로 올릴 것
+- APP_VERSION (app.js): v24
+- CACHE_VERSION (service-worker.js): fitlog-v24
+- 다음 수정 시 둘 다 v25로 올릴 것
 
 ---
 
@@ -55,8 +55,8 @@ git push
 
 ## 6. 미확인 버그 (iPhone에서 확인 필요)
 
-1. 탭바 하단 위치 — v22 CSS 수정으로 해결 안 됨. v23에서 JS 측정 보정(`--vp-gap`, index.html 인라인 스크립트)으로 재수정, 기기 확인 필요
-2. 운동 추가 검색창 — v23에서 오버레이를 visualViewport에 맞추는 방식으로 재수정, 기기 확인 필요
+1. 탭바 하단 위치 — 첫 실행 때 앱 화면 자체가 상태바 높이만큼 짧게 잡힘(아래는 그릴 수 없는 영역). CSS나 탭바 내리기(v23)로는 해결 불가. v24에서 짧게 잡힌 걸 감지하면 1px 스크롤을 유도하는 방식으로 재수정, 기기 확인 필요. 설정 → 앱 버전 옆 `화면 첫값→현재값/화면높이 · 보정 N` 진단값으로 확인
+2. 운동 추가 검색창 — v23에서 해결 확인. v24에서 키보드가 열렸을 때 시트 상단이 상태바에 가리지 않게 safe-area만큼 내림
 
 ---
 

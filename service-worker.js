@@ -5,7 +5,7 @@
  * ★ 버전을 올리면(activate) 이전 캐시가 삭제되어 옛 3D/자산이 강제로 교체된다.
  *   → 코드 수정 시 반드시 CACHE_VERSION 과 app.js 의 APP_VERSION 을 같은 숫자로 올린다.
  */
-const CACHE_VERSION = "fitlog-v23";
+const CACHE_VERSION = "fitlog-v24";
 // 핵심 셸: 하나라도 실패하면 설치 실패(원자적). 기존 앱 동작에 필수인 파일만.
 // ★ 3D(GLB·Three·runtime)는 절대 여기 넣지 않는다 — 3D 자산 실패가 앱 설치/기록 사용을 막지 않도록 분리.
 const SHELL = [
