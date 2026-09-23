@@ -45,6 +45,36 @@
     <button class="tab" data-view="settings">설정</button>
   </nav>
 
+  <script>
+    // iOS 홈화면 PWA 첫 실행 시 뷰포트가 상단 safe-area만큼 짧게 잡혀 fixed 하단 요소가 떠 있는 버그 보정.
+    // 탭바의 실제 바닥과 화면 바닥 차이를 재서 --vp-gap 으로 내려준다. 정상 상태면 0.
+    (function () {
+      var root = document.documentElement, bar = document.getElementById("tabbar"), gap = 0, raf = 0;
+      var standalone = window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      function typing() { var a = document.activeElement; return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable); }
+      function measure() {
+        raf = 0;
+        if (typing()) return;
+        var portrait = window.innerHeight >= window.innerWidth;
+        var screenH = standalone && portrait ? Math.max(screen.height, screen.width) : 0;
+        var expected = Math.max(window.innerHeight, screenH);
+        var natural = bar.getBoundingClientRect().bottom - gap;
+        var next = Math.round(expected - natural);
+        if (!(next > 0 && next <= 100)) next = 0;
+        if (next !== gap) { gap = next; root.style.setProperty("--vp-gap", gap + "px"); }
+        window.FitlogVP.gap = gap;
+      }
+      function schedule() { if (!raf) raf = requestAnimationFrame(measure); }
+      window.FitlogVP = { gap: 0, measure: schedule };
+      measure();
+      ["resize", "orientationchange", "pageshow", "load", "scroll", "focusout"].forEach(function (ev) { window.addEventListener(ev, schedule, { passive: true }); });
+      document.addEventListener("visibilitychange", schedule);
+      if (window.visualViewport) window.visualViewport.addEventListener("resize", schedule);
+      [100, 300, 800, 1500, 3000].forEach(function (ms) { setTimeout(schedule, ms); });
+    })();
+  </script>
+
   <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app -->
   <script src="./db.js"></script>
   <script src="./evaluation.js"></script>

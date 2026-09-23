@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v22";
+const APP_VERSION = "v23";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1351,21 +1351,35 @@ const App = {
     const overlay = el("div", { class: "modal-overlay" });
     const sheet = el("div", { class: "modal-sheet addex-sheet" });
 
-    // ── visualViewport 기반 모달 높이 고정 (v20: iOS 키보드 대응) ──
-    // 검색 결과 개수와 무관하게 시트 높이를 항상 동일하게 유지한다.
-    // 키보드가 올라오면 visualViewport.height 가 줄어드므로 그에 맞게 재계산.
-    // 단, overlay의 padding-bottom(safe-area)은 CSS에서 처리하므로 여기서는 순수 vp 높이만 사용.
-    const SHEET_RATIO = 0.86;   // 화면의 86%
-    const MIN_H_PX   = 200;     // 키보드 완전히 올라와도 최소 보장 높이
-    const applyHeight = () => {
-      const vph = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      sheet.style.height = Math.max(Math.floor(vph * SHEET_RATIO), MIN_H_PX) + "px";
+    // iOS는 키보드가 떠도 레이아웃 뷰포트를 줄이지 않아 inset:0 오버레이의 시트가 키보드 뒤에 깔린다.
+    // 오버레이를 실제 보이는 영역(visualViewport)에 맞추고, 키보드가 열리면 시트가 그 영역을 꽉 채운다.
+    const SHEET_RATIO = 0.86;
+    const MIN_H_PX = 200;
+    const vv = window.visualViewport;
+    let baseH = window.innerHeight;
+    const fit = () => {
+      baseH = Math.max(baseH, window.innerHeight);
+      const vh = vv ? vv.height : window.innerHeight;
+      const a = document.activeElement;
+      const typing = !!a && sheet.contains(a) && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+      const kb = baseH - vh > 120 || (typing && vh < screen.height - 150);
+      const h = kb ? vh : vh + ((window.FitlogVP && window.FitlogVP.gap) || 0);
+      overlay.style.top = (vv ? vv.offsetTop : 0) + "px";
+      overlay.style.bottom = "auto";
+      overlay.style.height = h + "px";
+      overlay.classList.toggle("kb-open", kb);
+      sheet.style.height = Math.max(kb ? Math.floor(h - 8) : Math.floor(h * SHEET_RATIO), MIN_H_PX) + "px";
     };
-    applyHeight();
-    if (window.visualViewport) { window.visualViewport.addEventListener("resize", applyHeight); }
+    const fitSoon = () => { fit(); setTimeout(fit, 120); setTimeout(fit, 350); };
+    fit();
+    if (vv) { vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit); }
+    window.addEventListener("resize", fit);
+    sheet.addEventListener("focusin", fitSoon);
+    sheet.addEventListener("focusout", fitSoon);
 
     const close = () => {
-      if (window.visualViewport) { window.visualViewport.removeEventListener("resize", applyHeight); }
+      if (vv) { vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); }
+      window.removeEventListener("resize", fit);
       overlay.remove();
       document.removeEventListener("keydown", onKey);
     };
