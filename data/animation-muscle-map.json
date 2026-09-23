@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "colors": {
+    "primary": "#ff825f",
+    "secondary": "#e5bf70",
+    "neutral": "#46535f"
+  },
+  "meaning": "일반적인 주요 운동 부위. 운동량·활성도·피로도 측정값이 아닙니다.",
+  "mappings": [
+    {
+      "muscleId": "upper_chest",
+      "nodeNames": [
+        "muscle_upper_chest"
+      ]
+    },
+    {
+      "muscleId": "chest",
+      "nodeNames": [
+        "muscle_chest"
+      ]
+    },
+    {
+      "muscleId": "front_delts",
+      "nodeNames": [
+        "muscle_front_delts"
+      ]
+    },
+    {
+      "muscleId": "side_delts",
+      "nodeNames": [
+        "muscle_side_delts"
+      ]
+    },
+    {
+      "muscleId": "rear_delts",
+      "nodeNames": [
+        "muscle_rear_delts"
+      ]
+    },
+    {
+      "muscleId": "traps",
+      "nodeNames": [
+        "muscle_traps"
+      ]
+    },
+    {
+      "muscleId": "upper_back",
+      "nodeNames": [
+        "muscle_upper_back"
+      ]
+    },
+    {
+      "muscleId": "mid_back",
+      "nodeNames": [
+        "muscle_mid_back"
+      ]
+    },
+    {
+      "muscleId": "lats",
+      "nodeNames": [
+        "muscle_lats"
+      ]
+    },
+    {
+      "muscleId": "biceps",
+      "nodeNames": [
+        "muscle_biceps"
+      ]
+    },
+    {
+      "muscleId": "triceps",
+      "nodeNames": [
+        "muscle_triceps"
+      ]
+    },
+    {
+      "muscleId": "forearms",
+      "nodeNames": [
+        "muscle_forearms"
+      ]
+    },
+    {
+      "muscleId": "abs",
+      "nodeNames": [
+        "muscle_abs"
+      ]
+    },
+    {
+      "muscleId": "obliques",
+      "nodeNames": [
+        "muscle_obliques"
+      ]
+    },
+    {
+      "muscleId": "glutes",
+      "nodeNames": [
+        "muscle_glutes"
+      ]
+    },
+    {
+      "muscleId": "quads",
+      "nodeNames": [
+        "muscle_quads"
+      ]
+    },
+    {
+      "muscleId": "hamstrings",
+      "nodeNames": [
+        "muscle_hamstrings"
+      ]
+    },
+    {
+      "muscleId": "calves",
+      "nodeNames": [
+        "muscle_calves"
+      ]
+    },
+    {
+      "muscleId": "adductors",
+      "nodeNames": [
+        "muscle_adductors"
+      ]
+    },
+    {
+      "muscleId": "hip_flexors",
+      "nodeNames": [
+        "muscle_hip_flexors"
+      ]
+    }
+  ]
+}

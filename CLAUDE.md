@@ -126,9 +126,11 @@ fitlog/                     # 저장소 루트 = 앱 진입점 = GitHub Pages �
 ├── catalog-data.js heatmap.js
 ├── runtime/                # 3D 뷰어(Three.js). index.html 옆(루트)에 있어야 함
 │   ├── heatmap-3d.js  muscle-bindings.js  svg-fallback.js
+│   ├── exercise-preview-3d.js   # 운동 상세 3D 애니메이션(v25)
 │   └── vendor/three/...
-├── assets/                 # icons/, sounds/rest-end.mp3, video/, anatomy/(SVG 5종+GLB)
-├── data/                   # muscle-regions.json, anatomy-3d-map.json
+├── assets/                 # icons/, sounds/rest-end.mp3, video/, anatomy/(SVG 5종+히트맵 GLB),
+│                           # exercises/(운동 애니메이션 GLB — 히트맵 GLB와 별개)
+├── data/                   # muscle-regions.json, anatomy-3d-map.json, exercise-preview-map.json, animation-muscle-map.json
 ├── docs/                   # DECISIONS·PRODUCT_SPEC·UX_SPEC·DATA_SPEC·DEPLOY 등
 ├── CLAUDE.md  README.md
 ├── manifest.webmanifest    # start_url: "./index.html"

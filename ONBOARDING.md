@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v24
-- CACHE_VERSION (service-worker.js): fitlog-v24
-- 다음 수정 시 둘 다 v25로 올릴 것
+- APP_VERSION (app.js): v25
+- CACHE_VERSION (service-worker.js): fitlog-v25
+- 다음 수정 시 둘 다 v26으로 올릴 것
 
 ---
 
@@ -50,6 +50,8 @@ git push
 - Phase 3: 가이드 편집·템플릿 CRUD·요일 매핑·JSON 백업/복원
 - Phase 4: AI 코치(프롬프트 생성 + 제안 JSON 적용)
 - 추가: 드래그 다이얼·기록 통계·분석기간·화면 유지 강화(WakeLock)
+- v25: 운동 추가 → 상세 화면 3D 운동 애니메이션(바벨 컬·덤벨 이두 컬·케이블 컬, Astra 제작). 히트맵용 `assets/anatomy/human_3d.glb`와 애니메이션용 `assets/exercises/*.glb`는 별개 파일이며 서로 교체 금지
+- `_astra_review/`는 외부 제작 패키지 검토용(읽기 전용, `.gitignore` 대상). 자산 수정·커밋 금지
 
 ---
 

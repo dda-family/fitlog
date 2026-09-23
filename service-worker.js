@@ -5,7 +5,7 @@
  * ★ 버전을 올리면(activate) 이전 캐시가 삭제되어 옛 3D/자산이 강제로 교체된다.
  *   → 코드 수정 시 반드시 CACHE_VERSION 과 app.js 의 APP_VERSION 을 같은 숫자로 올린다.
  */
-const CACHE_VERSION = "fitlog-v24";
+const CACHE_VERSION = "fitlog-v25";
 // 핵심 셸: 하나라도 실패하면 설치 실패(원자적). 기존 앱 동작에 필수인 파일만.
 // ★ 3D(GLB·Three·runtime)는 절대 여기 넣지 않는다 — 3D 자산 실패가 앱 설치/기록 사용을 막지 않도록 분리.
 const SHELL = [
@@ -49,10 +49,12 @@ self.addEventListener("fetch", (event) => {
   const isAsset = url.pathname.includes("/assets/sounds/") || url.pathname.includes("/assets/video/");
   const isAnatomy = url.pathname.includes("/assets/anatomy/");   // SVG 5종 + human_3d.glb
   const is3D = url.pathname.includes("/runtime/") || url.pathname.includes("/data/");   // Three·뷰어·3D 매핑
+  // 운동 애니메이션 GLB(각 ~2MB): 프리캐시하지 않고 상세에서 본 운동만 저장. 버전을 올리면 함께 교체된다.
+  const isExerciseAnim = url.pathname.includes("/assets/exercises/");
   if (isAsset) {
     // 사운드·영상: network-first (교체 즉시 반영), 오프라인 시 캐시 폴백
     event.respondWith(fetch(event.request).then((res) => { const clone = res.clone(); caches.open(CACHE_VERSION).then((c) => c.put(event.request, clone)); return res; }).catch(() => caches.match(event.request)));
-  } else if (isAnatomy || is3D) {
+  } else if (isAnatomy || is3D || isExerciseAnim) {
     // 히트맵 자산(SVG·GLB)·3D 런타임: cache-first + 미스 시 네트워크에서 받아 캐시.
     // 프리캐시 실패(예: GLB 미수신)해도 최초 온라인 후 캐시되어 이후 오프라인 3D/SVG 동작. 실패해도 앱은 정상.
     event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((res) => { const clone = res.clone(); if (res.ok) caches.open(CACHE_VERSION).then((c) => c.put(event.request, clone)); return res; })));

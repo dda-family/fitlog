@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v24";
+const APP_VERSION = "v25";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1380,6 +1380,7 @@ const App = {
     sheet.addEventListener("focusout", fitSoon);
 
     const close = () => {
+      this._disposePreview(ctx);
       if (vv) { vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); }
       window.removeEventListener("resize", fit);
       overlay.remove();
@@ -1389,8 +1390,10 @@ const App = {
     document.addEventListener("keydown", onKey);
     overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
     overlay.appendChild(sheet); document.body.appendChild(overlay);
-    const ctx = { tid, sheet, close, go: null };
+    // listState/searchState: 상세에서 돌아올 때 검색어·필터·스크롤 복원용. detailBack: 상세의 뒤로 목적지.
+    const ctx = { tid, sheet, close, go: null, previewCtrl: null, previewGen: 0, listState: null, searchState: null, detailBack: "search" };
     ctx.go = (state, arg) => {
+      this._disposePreview(ctx);   // 화면을 지우기 전에 동기적으로 3D 정리(WebGL 누수·늦은 로딩 방지)
       sheet.textContent = "";
       if (state === "list") this._addList(ctx);
       else if (state === "search") this._addSearch(ctx);
@@ -1425,12 +1428,60 @@ const App = {
     if (sec.length) t += "  (보조: " + sec.map((id) => this.regionLabel(id)).join(" · ") + ")";
     return t;
   },
-  // 향후 3D 운동 미리보기 자산 연결 지점(2차 개발). 현재는 자산 없음 → null(빈 영역 표시 안 함).
+  // 3D 운동 미리보기 자산(catalog-data.js EXERCISE_PREVIEWS). 없으면 null → 상세에 슬롯을 만들지 않음.
   _exercisePreviewAsset(catId) {
     const map = (window.FitlogCatalog && window.FitlogCatalog.EXERCISE_PREVIEWS) || {};
     return map[catId] || null;
   },
-  // 카탈로그 행(목록·검색 공용). opts.detail=true면 이름 탭 시 상세로.
+  // 히트맵(_heatCtrls)과 별개로 운동 추가 시트(ctx)마다 3D 컨트롤러 1개만 관리. import 완료를 기다리지 않는다.
+  _disposePreview(ctx) {
+    ctx.previewGen = (ctx.previewGen || 0) + 1;
+    const ctrl = ctx.previewCtrl; ctx.previewCtrl = null;
+    if (ctrl) { try { ctrl.destroy(); } catch (_) {} }
+  },
+  async _mountPreview(ctx, wrap, holder, playBtn, cid) {
+    this._disposePreview(ctx);
+    const gen = ctx.previewGen;
+    const stale = () => gen !== ctx.previewGen || !holder.isConnected;
+    const fail = () => { if (gen === ctx.previewGen) wrap.hidden = true; };   // 실패해도 설명·추가 버튼은 그대로
+    try {
+      const { createExercisePreview } = await import("./runtime/exercise-preview-3d.js");
+      if (stale()) return;
+      const ctrl = createExercisePreview(holder, {
+        exerciseId: cid, baseURL: this._appRootURL(), autoplay: true,
+        onStatus: ({ state }) => { if (state === "error" || state === "unavailable") fail(); },
+      });
+      ctx.previewCtrl = ctrl;
+      await ctrl.ready;
+      if (stale()) { try { ctrl.destroy(); } catch (_) {} return; }
+      if (ctrl.getDiagnostics().state !== "ready") { fail(); return; }
+      playBtn.disabled = false;
+    } catch (_) { fail(); }
+  },
+  // 색은 runtime의 animation-muscle-map.json(주동 #ff825f / 보조 #e5bf70)과 맞춘다. 운동 부위 안내이지 활성도 측정이 아님.
+  _buildPreview(ctx, c) {
+    const holder = el("div", { class: "addex-preview" });
+    const playBtn = el("button", { class: "addex-pv-btn", type: "button", disabled: "" }, "일시정지");
+    playBtn.addEventListener("click", () => {
+      const ctrl = ctx.previewCtrl; if (!ctrl) return;
+      if (ctrl.getDiagnostics().playing) { ctrl.pause(); playBtn.textContent = "재생"; }
+      else { ctrl.play(); playBtn.textContent = "일시정지"; }
+    });
+    const m = this.catalogMappingById(c.id) || {};
+    const chip = (cls, label, obj) => {
+      const ids = Object.keys(obj || {}); if (!ids.length) return null;
+      return el("span", { class: "addex-pv-key" }, [el("i", { class: "addex-pv-dot " + cls }), label + " " + ids.map((id) => this.regionLabel(id)).join("·")]);
+    };
+    const wrap = el("div", { class: "addex-preview-wrap" }, [
+      holder,
+      el("div", { class: "addex-pv-bar" }, [playBtn, el("div", { class: "addex-pv-legend" }, [chip("pri", "주요", m.primary), chip("sec", "보조", m.secondary)])]),
+      el("div", { class: "addex-pv-hint", text: "좌우로 밀면 시점이 돌아가요" }),
+    ]);
+    // 첫 await(import) 전에 호출자가 wrap을 DOM에 붙이므로, 이후 holder.isConnected 검사가 유효하다
+    this._mountPreview(ctx, wrap, holder, playBtn, c.id);
+    return wrap;
+  },
+  // 카탈로그 행(목록·검색 공용). opts.detail=true면 이름 탭 시 상세로, opts.from은 상세의 뒤로 목적지.
   _addCatalogRow(ctx, c, opts) {
     opts = opts || {};
     const inGuide = this.catalogInGuide(ctx.tid, c.id);
@@ -1447,10 +1498,10 @@ const App = {
       if (this.view === "guide") this.renderGuide();
     });
     const main = el("div", { class: "addex-item-main" + (opts.detail ? " tappable" : "") }, [
-      el("div", { class: "addex-item-name", text: c.label_ko || c.id }),
+      el("div", { class: "addex-item-name" }, [c.label_ko || c.id, this._exercisePreviewAsset(c.id) ? el("span", { class: "addex-3d-badge", text: "3D" }) : null]),
       el("div", { class: "addex-item-sub", text: this.categoryLabel(c.category) + (c.equipment ? " · " + this._equipLabel(c.equipment) : "") }),
     ]);
-    if (opts.detail) main.addEventListener("click", () => ctx.go("detail", c.id));
+    if (opts.detail) main.addEventListener("click", () => { ctx.detailBack = opts.from || "search"; ctx.go("detail", c.id); });
     return el("div", { class: "addex-item" }, [main, addBtn]);
   },
   _addQuickRow(ctx, cid) {
@@ -1458,6 +1509,7 @@ const App = {
     return this._addCatalogRow(ctx, c, {});
   },
   async _addEntry(ctx) {
+    ctx.listState = null; ctx.searchState = null;   // 첫 화면에서 새로 들어가면 목록·검색은 초기 상태로
     ctx.sheet.appendChild(this._addHeader(ctx, "운동 추가", null));
     const body = el("div", { class: "addex-body" });
     ctx.sheet.appendChild(body);
@@ -1479,8 +1531,9 @@ const App = {
     // ── 구조: addex-head(고정) → addex-fixed-top(검색+칩, 고정) → addex-scroll-list(결과만 스크롤) ──
     // iOS Safari에서 overflow:auto 컨테이너 안의 sticky 검색창이 결과 개수 변화 시 튀는 문제 수정.
     ctx.sheet.appendChild(this._addHeader(ctx, "운동 목록 선택", "entry"));
-    const state = { q: "", type: "all", region: "all" };
+    const state = ctx.listState || (ctx.listState = { q: "", type: "all", region: "all", scroll: 0 });
     const searchIn = el("input", { type: "search", class: "addex-search", placeholder: "운동 이름 검색", enterkeyhint: "search", autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: "false" });
+    searchIn.value = state.q;
     const typeChips = el("div", { class: "addex-chips" });
     const regionChips = el("div", { class: "addex-chips addex-chips-region" });
     // 고정 영역(검색창 + 칩) — 스크롤 컨테이너 밖
@@ -1497,7 +1550,7 @@ const App = {
       let items = this.catalogSearch(state.q, state.type, state.region);
       if (!state.q.trim()) items = items.slice().sort((a, b) => (a.label_ko || "").localeCompare(b.label_ko || "", "ko"));
       if (!items.length) { listEl.appendChild(el("div", { class: "addex-empty", text: "일치하는 운동이 없어요." })); return; }
-      items.forEach((c) => listEl.appendChild(this._addCatalogRow(ctx, c, {})));
+      items.forEach((c) => listEl.appendChild(this._addCatalogRow(ctx, c, { detail: true, from: "list" })));
     };
     const renderTypeChips = () => {
       typeChips.textContent = "";
@@ -1508,8 +1561,10 @@ const App = {
       if (state.type === "cardio") return;
       regionDefs.forEach(([v, l]) => regionChips.appendChild(el("button", { class: "addex-chip" + (state.region === v ? " on" : ""), type: "button", onclick: () => { state.region = v; renderRegionChips(); renderList(); } }, l)));
     };
-    searchIn.addEventListener("input", () => { state.q = searchIn.value; renderList(); });
+    searchIn.addEventListener("input", () => { state.q = searchIn.value; state.scroll = 0; renderList(); });
+    scrollEl.addEventListener("scroll", () => { state.scroll = scrollEl.scrollTop; }, { passive: true });
     renderTypeChips(); renderRegionChips(); renderList();
+    scrollEl.scrollTop = state.scroll;
   },
   _addSearch(ctx) {
     // ── 구조: addex-head(고정) → addex-fixed-top(검색창+힌트, 고정) → addex-scroll-list(결과만 스크롤) ──
@@ -1523,26 +1578,31 @@ const App = {
     const listEl = el("div", { class: "addex-list" });
     const scrollEl = el("div", { class: "addex-scroll-list" }, [listEl]);
     ctx.sheet.appendChild(scrollEl);
+    const state = ctx.searchState || (ctx.searchState = { q: "", scroll: 0 });
+    searchIn.value = state.q;
     const render = () => {
       listEl.textContent = "";
       const q = searchIn.value.trim();
       if (!q) { listEl.appendChild(el("div", { class: "addex-empty", text: "검색어를 입력하면 관련 운동이 나와요." })); return; }
       const items = this.catalogSearch(q, "all", "all");
       if (!items.length) { listEl.appendChild(el("div", { class: "addex-empty", text: "관련 운동을 못 찾았어요. 부위나 기구 이름으로도 검색해 보세요." })); return; }
-      items.slice(0, 20).forEach((c) => listEl.appendChild(this._addCatalogRow(ctx, c, { detail: true })));
+      items.slice(0, 20).forEach((c) => listEl.appendChild(this._addCatalogRow(ctx, c, { detail: true, from: "search" })));
     };
-    searchIn.addEventListener("input", render);
+    searchIn.addEventListener("input", () => { state.q = searchIn.value; state.scroll = 0; render(); });
+    scrollEl.addEventListener("scroll", () => { state.scroll = scrollEl.scrollTop; }, { passive: true });
     render();
-    setTimeout(() => { try { searchIn.focus(); } catch (_) {} }, 60);
+    scrollEl.scrollTop = state.scroll;
+    // 상세에서 돌아온 경우(검색어 있음)엔 키보드를 다시 띄우지 않고 결과를 바로 보여준다
+    if (!state.q) setTimeout(() => { try { searchIn.focus(); } catch (_) {} }, 60);
   },
   _addDetail(ctx, cid) {
     const c = this.catalogById(cid);
-    ctx.sheet.appendChild(this._addHeader(ctx, "운동 상세", "search"));
+    const back = ctx.detailBack || "search";
+    ctx.sheet.appendChild(this._addHeader(ctx, "운동 상세", back));
     const body = el("div", { class: "addex-body" });
     ctx.sheet.appendChild(body);
     if (!c) { body.appendChild(el("div", { class: "addex-empty", text: "운동 정보를 찾을 수 없어요." })); return; }
-    const asset = this._exercisePreviewAsset(c.id);
-    if (asset) body.appendChild(el("div", { class: "addex-preview", "data-preview-exercise": c.id }));   // 자산 있을 때만
+    if (this._exercisePreviewAsset(c.id)) body.appendChild(this._buildPreview(ctx, c));   // 자산 있을 때만
     body.appendChild(el("div", { class: "addex-detail-name", text: c.label_ko || cid }));
     body.appendChild(el("div", { class: "addex-detail-meta", text: (c.exerciseType === "cardio" ? "유산소" : "근력") + " · " + this.categoryLabel(c.category) + (c.equipment ? " · " + this._equipLabel(c.equipment) : "") }));
     const parts = this._catalogPartsText(c);
@@ -1553,7 +1613,7 @@ const App = {
     const btn = el("button", { class: "btn btn-primary addex-detail-add", type: "button" }, "이 운동 추가");
     btn.addEventListener("click", async () => {
       const res = await this.addCatalogExerciseToGuide(ctx.tid, c.id);
-      if (res.ok) { this._addToast(ctx, res.ex.name + " 추가됨"); if (this.view === "guide") this.renderGuide(); ctx.go("search"); }
+      if (res.ok) { if (this.view === "guide") this.renderGuide(); ctx.go(back); this._addToast(ctx, res.ex.name + " 추가됨"); }
       else if (res.dup) this._addToast(ctx, "이미 추가된 운동이에요");
     });
     body.appendChild(btn);

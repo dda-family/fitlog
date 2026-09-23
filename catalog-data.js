@@ -94,3 +94,11 @@ window.FitlogCatalog = {
     "rowing_ergometer": "유산소 로잉머신 노젓기 로워"
   }
 };
+
+// 3D 운동 미리보기(Astra 애니메이션 패키지). 여기 있는 운동만 상세 화면에 3D 슬롯을 만든다.
+// 클립·근육색 등 상세 메타는 runtime/exercise-preview-3d.js 가 data/exercise-preview-map.json 에서 읽는다.
+window.FitlogCatalog.EXERCISE_PREVIEWS = {
+  barbell_curl: { src: "assets/exercises/barbell_curl.glb" },
+  dumbbell_curl: { src: "assets/exercises/dumbbell_curl.glb" },
+  cable_curl: { src: "assets/exercises/cable_curl.glb" },
+};

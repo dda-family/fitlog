@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "threeVersion": "0.180.0",
+  "exercises": {
+    "dumbbell_curl": {
+      "exerciseId": "dumbbell_curl",
+      "label": "덤벨 이두 컬",
+      "type": "model",
+      "src": "assets/exercises/dumbbell_curl.glb",
+      "clip": "dumbbell_curl",
+      "duration": 4.8,
+      "primary": {
+        "biceps": 1
+      },
+      "secondary": {
+        "forearms": 0.5
+      },
+      "minor": {},
+      "notes": "손바닥을 위로 돌리는 기본 컬.",
+      "equipmentNodes": [
+        "dumbbell_L",
+        "dumbbell_R"
+      ]
+    },
+    "barbell_curl": {
+      "exerciseId": "barbell_curl",
+      "label": "바벨 컬",
+      "type": "model",
+      "src": "assets/exercises/barbell_curl.glb",
+      "clip": "barbell_curl",
+      "duration": 4.8,
+      "primary": {
+        "biceps": 1
+      },
+      "secondary": {
+        "forearms": 0.5
+      },
+      "minor": {},
+      "notes": "봉 포함 총중량.",
+      "equipmentNodes": [
+        "barbell"
+      ]
+    },
+    "cable_curl": {
+      "exerciseId": "cable_curl",
+      "label": "케이블 컬",
+      "type": "model",
+      "src": "assets/exercises/cable_curl.glb",
+      "clip": "cable_curl",
+      "duration": 4.8,
+      "primary": {
+        "biceps": 1
+      },
+      "secondary": {
+        "forearms": 0.5
+      },
+      "minor": {},
+      "notes": "양손 바 손잡이 기준.",
+      "equipmentNodes": [
+        "cable_handle"
+      ]
+    }
+  }
+}

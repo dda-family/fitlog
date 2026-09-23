@@ -537,7 +537,22 @@ body { min-height: 100vh; min-height: 100dvh; }
 .addex-detail-label { color: var(--text-faint); font-size: 12px; font-weight: 700; }
 .addex-detail-notes { color: var(--text-dim); font-size: 13px; line-height: 1.45; }
 .addex-detail-add { width: 100%; min-height: 52px; margin-top: 4px; }
-.addex-preview { width: 100%; height: 200px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+/* 3D 운동 미리보기 (runtime/exercise-preview-3d.js가 holder 안에 canvas를 채움 — 명시적 높이 필요) */
+.addex-preview-wrap { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.addex-preview-wrap[hidden] { display: none; }
+.addex-preview { width: 100%; height: 320px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.addex-pv-bar { display: flex; align-items: center; gap: 10px; }
+.addex-pv-btn { flex: 0 0 auto; min-height: 40px; min-width: 84px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600; }
+.addex-pv-btn:disabled { opacity: 0.45; }
+.addex-pv-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--text-dim); }
+.addex-pv-key { display: inline-flex; align-items: center; gap: 5px; }
+.addex-pv-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.addex-pv-dot.pri { background: #ff825f; }
+.addex-pv-dot.sec { background: #e5bf70; }
+.addex-pv-hint { color: var(--text-faint); font-size: 12px; margin: -2px 2px 0; }
+.addex-3d-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
+  background: var(--accent-dim); color: var(--accent); font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
 .addex-toast { position: absolute; left: 50%; bottom: calc(18px + var(--safe-bottom)); transform: translateX(-50%);
   background: rgba(20,28,24,0.96); color: #eafff2; border: 1px solid var(--border); border-radius: 999px;
   padding: 10px 18px; font-size: 14px; font-weight: 600; z-index: 5; animation: modal-fade 0.15s ease; pointer-events: none; }
