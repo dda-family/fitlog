@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v26";
+const APP_VERSION = "v27";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1559,7 +1559,7 @@ const App = {
           if (lab.closed || !lab.ctrl) return;
           const d = state === "ready" ? lab.ctrl.getDiagnostics() : null;
           statusEl.textContent = state === "ready"
-            ? "로딩 " + d.lastLoadMs + "ms · 장비 " + (d.equipment.length ? d.equipment.join(", ") : "없음") + " · 좌우로 밀면 시점 회전"
+            ? "로딩 " + d.lastLoadMs + "ms · 리그 " + d.rigId + " · 장비 " + (d.equipment.length ? d.equipment.join(", ") : "없음") + " · 좌우로 밀면 시점 회전"
             : (reason || state);
           statusEl.classList.toggle("err", state === "error" || state === "unavailable");
         },

@@ -2,9 +2,9 @@
   "schemaVersion": "2.0.0-prototype.1",
   "threeVersion": "0.180.0",
   "rig": {
-    "id": "rig17-v1",
-    "src": "assets/shared/human-rig17-v1.glb",
-    "sha256": "43b0dbf1a63626471ce46f0c1c3e942ff8a3538ccb906d761b11f1e46361e6b1",
+    "id": "rig-v2.0.0",
+    "src": "assets/shared/human-rig-v2.glb",
+    "sha256": "805e2cca698be13c48370d4b4127c7946864dd0d89f80af4d3de8a3df91448a8",
     "jointNames": [
       "pelvis",
       "spine",
@@ -22,7 +22,9 @@
       "ankle_L",
       "hip_R",
       "knee_R",
-      "ankle_R"
+      "ankle_R",
+      "toe_L",
+      "toe_R"
     ]
   },
   "exercises": {
@@ -31,7 +33,7 @@
       "label": "바벨 벤치프레스",
       "assetMode": "shared",
       "status": "technical_prototype",
-      "rigId": "rig17-v1",
+      "rigId": "rig-v2.0.0",
       "clip": {
         "src": "assets/clips/barbell_bench_press.glb",
         "name": "barbell_bench_press",
@@ -54,12 +56,12 @@
           ],
           "localGrips": [
             [
-              0.29,
+              0.285,
               0,
               0
             ],
             [
-              -0.29,
+              -0.285,
               0,
               0
             ]
@@ -98,7 +100,7 @@
       "label": "푸시업",
       "assetMode": "shared",
       "status": "technical_prototype",
-      "rigId": "rig17-v1",
+      "rigId": "rig-v2.0.0",
       "clip": {
         "src": "assets/clips/push_up.glb",
         "name": "push_up",
@@ -138,7 +140,7 @@
       "label": "랫풀다운",
       "assetMode": "shared",
       "status": "technical_prototype",
-      "rigId": "rig17-v1",
+      "rigId": "rig-v2.0.0",
       "clip": {
         "src": "assets/clips/lat_pulldown.glb",
         "name": "lat_pulldown",
@@ -227,11 +229,11 @@
       "label": "트레드밀 경사 걷기",
       "assetMode": "shared",
       "status": "technical_prototype",
-      "rigId": "rig17-v1",
+      "rigId": "rig-v2.0.0",
       "clip": {
         "src": "assets/clips/treadmill_incline_walk.glb",
         "name": "treadmill_incline_walk",
-        "duration": 1.4
+        "duration": 1.6
       },
       "embeddedComparison": "assets/clips/treadmill_incline_walk.embedded-comparison.glb",
       "equipment": [

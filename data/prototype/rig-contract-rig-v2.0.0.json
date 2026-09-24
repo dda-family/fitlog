@@ -1,0 +1,196 @@
+{
+  "rigId": "rig-v2.0.0",
+  "sha256": "805e2cca698be13c48370d4b4127c7946864dd0d89f80af4d3de8a3df91448a8",
+  "joints": [
+    {
+      "index": 0,
+      "name": "pelvis",
+      "parent": null,
+      "bindTranslation": [
+        0.0,
+        0.96,
+        0.0
+      ]
+    },
+    {
+      "index": 1,
+      "name": "spine",
+      "parent": "pelvis",
+      "bindTranslation": [
+        0.0,
+        0.17999999999999994,
+        0.0
+      ]
+    },
+    {
+      "index": 2,
+      "name": "chest",
+      "parent": "spine",
+      "bindTranslation": [
+        0.0,
+        0.2200000000000002,
+        0.0
+      ]
+    },
+    {
+      "index": 3,
+      "name": "neck",
+      "parent": "chest",
+      "bindTranslation": [
+        0.0,
+        0.20999999999999996,
+        0.0
+      ]
+    },
+    {
+      "index": 4,
+      "name": "head",
+      "parent": "neck",
+      "bindTranslation": [
+        0.0,
+        0.10999999999999988,
+        0.0
+      ]
+    },
+    {
+      "index": 5,
+      "name": "shoulder_L",
+      "parent": "chest",
+      "bindTranslation": [
+        0.172,
+        0.06999999999999984,
+        0.0
+      ]
+    },
+    {
+      "index": 6,
+      "name": "elbow_L",
+      "parent": "shoulder_L",
+      "bindTranslation": [
+        0.063,
+        -0.30999999999999983,
+        0.0
+      ]
+    },
+    {
+      "index": 7,
+      "name": "wrist_L",
+      "parent": "elbow_L",
+      "bindTranslation": [
+        0.0,
+        -0.2650000000000001,
+        0.01
+      ]
+    },
+    {
+      "index": 8,
+      "name": "shoulder_R",
+      "parent": "chest",
+      "bindTranslation": [
+        -0.172,
+        0.06999999999999984,
+        0.0
+      ]
+    },
+    {
+      "index": 9,
+      "name": "elbow_R",
+      "parent": "shoulder_R",
+      "bindTranslation": [
+        -0.063,
+        -0.30999999999999983,
+        0.0
+      ]
+    },
+    {
+      "index": 10,
+      "name": "wrist_R",
+      "parent": "elbow_R",
+      "bindTranslation": [
+        0.0,
+        -0.2650000000000001,
+        0.01
+      ]
+    },
+    {
+      "index": 11,
+      "name": "hip_L",
+      "parent": "pelvis",
+      "bindTranslation": [
+        0.077,
+        -0.04999999999999993,
+        0.0
+      ]
+    },
+    {
+      "index": 12,
+      "name": "knee_L",
+      "parent": "hip_L",
+      "bindTranslation": [
+        0.012999999999999998,
+        -0.46,
+        0.0
+      ]
+    },
+    {
+      "index": 13,
+      "name": "ankle_L",
+      "parent": "knee_L",
+      "bindTranslation": [
+        0.0,
+        -0.37,
+        0.0
+      ]
+    },
+    {
+      "index": 14,
+      "name": "hip_R",
+      "parent": "pelvis",
+      "bindTranslation": [
+        -0.077,
+        -0.04999999999999993,
+        0.0
+      ]
+    },
+    {
+      "index": 15,
+      "name": "knee_R",
+      "parent": "hip_R",
+      "bindTranslation": [
+        -0.012999999999999998,
+        -0.46,
+        0.0
+      ]
+    },
+    {
+      "index": 16,
+      "name": "ankle_R",
+      "parent": "knee_R",
+      "bindTranslation": [
+        0.0,
+        -0.37,
+        0.0
+      ]
+    },
+    {
+      "index": 17,
+      "name": "toe_L",
+      "parent": "ankle_L",
+      "bindTranslation": [
+        0.0,
+        -0.045,
+        0.092
+      ]
+    },
+    {
+      "index": 18,
+      "name": "toe_R",
+      "parent": "ankle_R",
+      "bindTranslation": [
+        0.0,
+        -0.045,
+        0.092
+      ]
+    }
+  ]
+}

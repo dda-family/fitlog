@@ -51,7 +51,8 @@ export function createPrototypePreview(container, options = {}) {
   }
   async function loadGLB(url, expectSha) {
     const buf = await fetchBuffer(url);
-    if (expectSha && globalThis.crypto?.subtle) {
+    if (expectSha) {
+      if (!globalThis.crypto?.subtle) throw new Error("Rig integrity check unavailable");
       const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
       if (hex !== expectSha) throw new Error("Rig hash mismatch");
     }
@@ -61,7 +62,54 @@ export function createPrototypePreview(container, options = {}) {
     if (header.buffers?.some((x) => x.uri) || header.images?.some((x) => x.uri)) throw new Error("External resource forbidden");
     const gltf = await new GLTFLoader().parseAsync(buf, baseURL.href);
     if (disposed) { disposeTree(gltf.scene); throw new Error("disposed"); }
+    gltf.fitlogExtras = header.extras || {};
     return gltf;
+  }
+  async function fetchJSON(path) {
+    const r = await fetch(new URL(path, baseURL));
+    if (!r.ok) throw new Error("Data HTTP " + r.status + " " + path);
+    return r.json();
+  }
+  // 리그 계약 검사(rigId·계층·바인드 위치·근육 노드). 불일치하면 로딩을 거부하고 보정하지 않는다.
+  function checkRig(scene, extras, contract) {
+    const rig = manifest.rig;
+    if (extras.rigId !== rig.id) throw new Error("Rig id mismatch (GLB " + extras.rigId + ")");
+    if (contract.rigId !== rig.id || contract.sha256 !== rig.sha256) throw new Error("Rig contract mismatch");
+    const names = contract.joints.map((j) => j.name);
+    if (names.join() !== rig.jointNames.join()) throw new Error("Rig joint list mismatch");
+    const count = new Map();
+    scene.traverse((o) => { if (o.name) count.set(o.name, (count.get(o.name) || 0) + 1); });
+    const p = new T.Vector3();
+    for (const j of contract.joints) {
+      if (count.get(j.name) !== 1) throw new Error("Rig joint missing/duplicate " + j.name);
+      const node = scene.getObjectByName(j.name);
+      const parentOk = j.parent === null ? !names.includes(node.parent?.name) : node.parent?.name === j.parent;
+      if (!parentOk) throw new Error("Rig hierarchy mismatch " + j.name);
+      if (node.position.distanceTo(p.fromArray(j.bindTranslation)) > 1e-4) throw new Error("Rig bind pose mismatch " + j.name);
+    }
+    let skeleton = null;
+    scene.traverse((o) => { if (o.isSkinnedMesh && !skeleton) skeleton = o.skeleton; });
+    if (!skeleton || skeleton.bones.map((b) => b.name).join() !== names.join()) throw new Error("Rig skeleton mismatch");
+    const mats = new Map();
+    for (const m of colorMap.mappings) for (const n of m.nodeNames) {
+      const node = scene.getObjectByName(n);
+      if (!node?.isSkinnedMesh || node.userData?.muscleId !== m.muscleId) throw new Error("Muscle mesh mismatch " + m.muscleId);
+      if (mats.has(node.material) && mats.get(node.material) !== m.muscleId) throw new Error("Shared muscle material");
+      mats.set(node.material, m.muscleId);
+    }
+  }
+  // 클립 계약 검사: 같은 리그 전용인지, 정확한 이름인지, 전 관절 회전 + pelvis 위치 트랙이 있는지.
+  function checkClip(gltf, e, id, contract) {
+    const x = gltf.fitlogExtras;
+    if (x.rigId !== manifest.rig.id || x.rigSha256 !== manifest.rig.sha256) throw new Error("Clip rig mismatch " + id);
+    if (e.clip.name !== id) throw new Error("Clip name mismatch " + id);
+    const clip = gltf.animations.find((c) => c.name === e.clip.name);
+    if (!clip) throw new Error("Animation missing " + e.clip.name);
+    const tracks = new Set(clip.tracks.map((t) => t.name));
+    const need = contract.joints.map((j) => j.name + ".quaternion").concat("pelvis.position");
+    const missing = need.filter((n) => !tracks.has(n));
+    if (missing.length) throw new Error("Clip tracks missing " + missing.slice(0, 3).join(","));
+    return clip;
   }
 
   function active_() { return !disposed && state === "ready" && visible && inView && !document.hidden; }
@@ -144,12 +192,12 @@ export function createPrototypePreview(container, options = {}) {
   }
 
   // 공유 인체는 뷰어당 한 번만 로드(동시 select도 같은 Promise를 기다림). 실패 시 다음 select에서 재시도.
-  let rigPromise = null;
+  let rigPromise = null, rigContract = null;
   function loadRig() {
     rigPromise ||= (async () => {
+      rigContract = await fetchJSON("data/prototype/rig-contract-" + manifest.rig.id + ".json");
       const g = await loadGLB(assetURL(manifest.rig.src), manifest.rig.sha256);
-      const missing = manifest.rig.jointNames.filter((j) => !g.scene.getObjectByName(j));
-      if (missing.length) { disposeTree(g.scene); throw new Error("Rig joints missing: " + missing.join(",")); }
+      try { checkRig(g.scene, g.fitlogExtras, rigContract); } catch (err) { disposeTree(g.scene); throw err; }
       g.scene.traverse((n) => { if (n.isSkinnedMesh) n.frustumCulled = false; });
       shared = g.scene;
     })().catch((err) => { rigPromise = null; throw err; });
@@ -174,8 +222,7 @@ export function createPrototypePreview(container, options = {}) {
       if (!clipCache.has(id)) {
         const g = await loadGLB(assetURL(e.clip.src));
         disposeTree(g.scene);
-        const clip = g.animations.find((c) => c.name === e.clip.name);
-        if (!clip) throw new Error("Animation missing " + e.clip.name);
+        const clip = checkClip(g, e, id, rigContract);
         const unbound = clip.tracks.filter((t) => !shared.getObjectByName(t.name.split(".")[0]));
         if (unbound.length) throw new Error("Clip tracks not in rig");
         clipCache.set(id, clip);
@@ -275,7 +322,7 @@ export function createPrototypePreview(container, options = {}) {
     const colors = {};
     body?.traverse((n) => { if (n.userData?.muscleId && n.material?.color) colors[n.userData.muscleId] = n.material.color.getHexString(); });
     return {
-      state, reason, exerciseId: catalogId, status: entry?.status || null, playing, visible, inView, framePending: !!frame, renders,
+      state, reason, exerciseId: catalogId, status: entry?.status || null, rigId: shared ? manifest.rig.id : null, clipDuration: entry?.clip.duration || null, playing, visible, inView, framePending: !!frame, renders,
       time: action?.time || 0, lastLoadMs, bodyUUID: body?.uuid || null, sharedUUID: shared?.uuid || null,
       equipment: active.map((x) => x.item.id), cables: cables.map((c) => ({ id: c.spec.id, from: c.from.getWorldPosition(new T.Vector3()).toArray().map((v) => +v.toFixed(3)) })),
       openHands: openHands.length, clipCache: clipCache.size, equipmentCache: eqCache.size, requests: requests.slice(),

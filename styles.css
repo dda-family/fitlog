@@ -554,7 +554,9 @@ body { min-height: 100vh; min-height: 100dvh; }
 /* 3D 기술 시제품 시험 화면 (설정 → 개발자). 정식 미리보기와 별도 */
 .proto-sheet { display: flex; flex-direction: column; padding-top: 8px;
   max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px); }
-.proto-body { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.proto-body { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; padding-bottom: 8px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* 화면이 낮아도 안내·상태 문구가 찌그러지지 않게: 줄이지 말고 시트 안에서 스크롤 */
+.proto-body > * { flex-shrink: 0; }
 .proto-warn { display: flex; flex-direction: column; gap: 6px; background: #2a2010; border: 1px solid #5a4010; color: #f0c870;
   border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
 .proto-badge { align-self: flex-start; background: var(--warn); color: #1d1604; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
