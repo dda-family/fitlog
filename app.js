@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v27";
+const APP_VERSION = "v28";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1484,13 +1484,16 @@ const App = {
   // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
   // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
   // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
-  PROTO_3D_IDS: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk"],
+  // R2 대표 4종(계약 2.0) + P1 대표 5종(장비 계약 2.1). 모두 technical_prototype — 정식 미리보기 아님.
+  PROTO_3D_IDS: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
+    "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up"],
   openProto3DLab() {
     const overlay = el("div", { class: "modal-overlay" });
     const sheet = el("div", { class: "modal-sheet proto-sheet" });
     const lab = { ctrl: null, closed: false, current: null };
     const close = () => {
       lab.closed = true;
+      clearInterval(lab.sync);
       if (lab.ctrl) { try { lab.ctrl.destroy(); } catch (_) {} lab.ctrl = null; }
       overlay.remove();
       document.removeEventListener("keydown", onKey);
@@ -1504,6 +1507,14 @@ const App = {
     const holder = el("div", { class: "proto-view" });
     const playBtn = el("button", { class: "addex-pv-btn", type: "button", disabled: "" }, "일시정지");
     const legend = el("div", { class: "addex-pv-legend" });
+    // 정규화 위상 스크럽(0~1): 인체·장비가 같은 위상으로 평가된다. 조작하면 일시정지.
+    const scrub = el("input", { type: "range", class: "proto-scrub", min: "0", max: "1", step: "0.001", value: "0", "aria-label": "동작 위치" });
+    scrub.addEventListener("input", () => {
+      const c = lab.ctrl; if (!c) return;
+      if (c.isPlaying()) { c.pause(); playBtn.textContent = "재생"; }
+      c.seekPhase(+scrub.value);
+    });
+    lab.sync = setInterval(() => { const c = lab.ctrl; if (c && c.isPlaying()) scrub.value = String(c.getPhase()); }, 150);
     const chips = el("div", { class: "addex-chips proto-chips" });
     const label = (id) => (this.catalogById(id) || {}).label_ko || id;
     const renderChips = () => {
@@ -1518,10 +1529,11 @@ const App = {
       legend.textContent = "";
       [key("pri", "주요", m.primary), key("sec", "보조", m.secondary)].forEach((n) => n && legend.appendChild(n));
       if (!legend.childNodes.length) legend.appendChild(el("span", { class: "addex-pv-key", text: "강조 부위 없음(유산소)" }));
-      playBtn.disabled = true; playBtn.textContent = "일시정지";
+      playBtn.disabled = true; playBtn.textContent = "일시정지"; scrub.value = "0";
       if (!lab.ctrl) return;
-      // 앱 카탈로그 매핑의 primary/secondary 기준으로 강조(minor는 강조하지 않음)
-      const st = await lab.ctrl.select(id, { muscles: { primary: m.primary || {}, secondary: m.secondary || {} } });
+      // 앱 카탈로그 매핑 기준 강조(primary/secondary만 색, minor는 데이터만). 2.1은 manifest 사본과 일치해야 로드.
+      if (!lab.ctrl.isPlaying()) lab.ctrl.play();
+      const st = await lab.ctrl.select(id, { muscles: { primary: m.primary || {}, secondary: m.secondary || {}, minor: m.minor || {} } });
       if (lab.closed || lab.current !== id) return;
       playBtn.disabled = st !== "ready";
     };
@@ -1544,6 +1556,7 @@ const App = {
       el("div", { class: "proto-titlebar" }, [nameEl, el("span", { class: "proto-status-tag", text: "technical_prototype" })]),
       holder,
       el("div", { class: "addex-pv-bar" }, [playBtn, legend]),
+      scrub,
       statusEl,
     ]));
     overlay.appendChild(sheet); document.body.appendChild(overlay);
@@ -1559,7 +1572,7 @@ const App = {
           if (lab.closed || !lab.ctrl) return;
           const d = state === "ready" ? lab.ctrl.getDiagnostics() : null;
           statusEl.textContent = state === "ready"
-            ? "로딩 " + d.lastLoadMs + "ms · 리그 " + d.rigId + " · 장비 " + (d.equipment.length ? d.equipment.join(", ") : "없음") + " · 좌우로 밀면 시점 회전"
+            ? "계약 " + (d.schemaVersion === "2.1.0-prototype.1" ? "2.1" : "2.0") + " · 로딩 " + d.lastLoadMs + "ms · 리그 " + d.rigId + " · 장비 " + (() => { const ids = d.schemaVersion === "2.1.0-prototype.1" ? d.instances.map((i) => i.id) : d.equipment; return ids.length ? ids.join(", ") : "없음"; })() + " · 좌우로 밀면 시점 회전"
             : (reason || state);
           statusEl.classList.toggle("err", state === "error" || state === "unavailable");
         },

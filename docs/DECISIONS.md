@@ -335,3 +335,50 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
   - Chromium(SwiftShader): 전체 52 + R2 호환·혼용 거부 13 + 기존 추가 흐름 회귀 21 + 업그레이드 시뮬레이션 PASS
   - iPhone 실기기: NOT_TESTED
 - **배포 제외**: `.gitignore`에 `_astra_repair_r2/`를 추가했다.
+
+---
+
+## v28 (2026-09-25) — Astra 장비 계약 2.1 병행 지원 + P1 대표 5종 (technical_prototype)
+
+- **범위**: `dumbbell_shoulder_press`, `dumbbell_lateral_raise`, `pec_deck_fly`, `leg_extension`, `assisted_pull_up` 5종만 추가했다. 나머지 P1 9종과 P2는 추가하지 않았다. 시험 화면은 R2 4종 + P1 5종 = 9종이고, 정식 미리보기(`EXERCISE_PREVIEWS`)에는 등록하지 않았다.
+- **자산**
+  - 클립 5개 → `assets/prototype/stage1/clips/`
+  - 장비 5개 → `assets/prototype/stage1/equipment/` (`dumbbell_single`, `upright_bench`, `pec_deck`, `leg_extension_machine`, `assisted_tower`)
+  - `data/prototype/equipment-p1-manifest.json`(2.1), `data/prototype/equipment-manifest.schema.json`
+  - 공유 인체, 리그 계약, 근육 매핑, Three.js는 해시가 같아 복사하지 않았다.
+  - 기존 `stage1-manifest.json`(2.0), R2 자산, 컬, 히트맵은 변경하지 않았다.
+- **D26. schemaVersion 분기**
+  - 런타임(`runtime/exercise-prototype-3d.js`)은 manifest 두 개를 읽는다.
+  - `2.0.0-prototype.1`은 기존 의미 그대로(fixed/twoHand, mixer.update)다.
+  - `2.1.0-prototype.1`은 새 계약이다. 그 외 버전은 해당 manifest의 운동만 거부한다.
+  - 2.1은 실제 스키마 파일로 구조를 검사하고, 모르는 필드와 운동 전용 attachment 타입을 거부한다.
+  - 같은 운동 ID가 두 manifest에 있으면 거부한다.
+- **D27. 2.1 구현**
+  - attachment는 `fixed`/`node`/`twoPoint`만 지원한다.
+  - node 부착: `compose(P, Qtarget·Qatt, 1) · inverse(anchorRest)`
+  - twoPoint: 강체 프레임. 거리가 허용 오차를 넘거나, 두 점이 겹치거나, up이 퇴화하면 거부하고 늘리지 않는다.
+  - 장비 GLB는 src+SHA 키 템플릿으로 뷰어 수명 동안 캐시하고, 인스턴스는 `clone`해 트리·변환·AnimationMixer를 분리한다. 인스턴스 제거는 공유 geometry를 dispose하지 않으며, 뷰어를 종료할 때만 해제한다.
+  - 케이블 끝점은 body/equipment(노드 또는 로컬)/scene. 길이 0이면 숨긴다.
+  - 공유 인체는 `rigId+SHA` 키로 2.0·2.1이 같은 객체를 쓰고 한 번만 받는다.
+- **D28. normalized phase**
+  - 인체 위상 p 하나만 전진시킨다(프레임 간격 상한 0.05초를 p에만 적용).
+  - 인체 시간 = p·Db, 장비 시간 = fract(p·cycles + offset)·De를 각각 `setTime`에 넣는다. 장비별 벽시계 누적은 없다.
+  - 평가 순서: 인체 → 장비 내부 → world 갱신 → 부착 → world 재갱신 → 케이블 → 렌더
+  - 버그 수정: three의 LoopOnce 액션은 끝에 닿으면 `paused`가 돼 이후 `setTime`이 0에 멈춘다. 끝점 스크럽 후 머신이 멈추던 문제를 테스트에서 발견해, 평가마다 paused를 해제하도록 고쳤다.
+- **검증 추가**
+  - 모든 2.1 GLB의 SHA-256
+  - 장비 extras(assetType, equipmentId=파일명, 버전, contractVersion, 좌표계)
+  - 노드 이름 유일성, `equipment_root`
+  - anchor와 target 존재, 움직이는 anchor와 그 조상 금지, 장비 트랙 대상은 인스턴스 내부
+  - 장비·인체 duration 일치(1e-5)
+  - 인체 클립은 assetType·catalogId extras, 애니메이션 1개, 정확히 20트랙(장비 트랙 금지)
+  - instance/cable ID 중복 금지
+  - manifest 근육 사본 = 앱 카탈로그(다르면 거부)
+- **UI**: 시험 화면에 9종 칩, 위상 스크럽 슬라이더(조작하면 일시정지), 상태 문구에 `계약 2.0/2.1`·리그·장비 인스턴스 표시
+- **SW**: 코드 변경 없음. `/assets/prototype/`와 `/data/`는 본 것만 저장하고 v28로 교체된다. 공유 인체 캐시는 1개다.
+- **검증**
+  - Chromium(SwiftShader) 자동 테스트: P1·2.1 85개(실제 5종 59 + 합성 fixture 5 + 음성 16 + R2 4 + 공통 1), 시험 화면 20, 기존 전체 52, R2 호환 13, 추가 흐름 21 모두 PASS
+  - twoPoint와 케이블은 **합성 fixture만 PASS**다. 실제 운동 검증은 NOT_TESTED이며 incline bench, seated cable row, pushdown 제작 시 확인한다.
+  - 순환 유산소 기구: NOT_TESTED
+  - 신규 5종 iPhone: USER_TEST_REQUIRED
+  - 겨드랑이·어깨 국소 변형: Astra NEEDS_REVIEW 유지(해결되지 않음)

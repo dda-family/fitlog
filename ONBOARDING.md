@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v27
-- CACHE_VERSION (service-worker.js): fitlog-v27
-- 다음 수정 시 둘 다 v28로 올릴 것
+- APP_VERSION (app.js): v28
+- CACHE_VERSION (service-worker.js): fitlog-v28
+- 다음 수정 시 둘 다 v29로 올릴 것
 
 ---
 
@@ -53,6 +53,7 @@ git push
 - v25: 운동 추가 → 상세 화면 3D 운동 애니메이션(바벨 컬·덤벨 이두 컬·케이블 컬, Astra 제작). 히트맵용 `assets/anatomy/human_3d.glb`와 애니메이션용 `assets/exercises/*.glb`는 별개 파일이며 서로 교체 금지
 - `_astra_review/`는 외부 제작 패키지 검토용(읽기 전용, `.gitignore` 대상). 자산 수정·커밋 금지
 - v26: Astra 대표 4종(벤치·푸시업·랫풀다운·경사 걷기)은 **technical_prototype**이다. 설정 → 개발자 · 시험 기능 → 3D 시제품 시험에서만 볼 수 있고, 정식 미리보기(`EXERCISE_PREVIEWS`)에는 품질 승인 전까지 등록 금지. `_astra_stage1/`도 `.gitignore` 대상
+- v28: 장비 계약 2.1(`data/prototype/equipment-p1-manifest.json` + `equipment-manifest.schema.json`)을 2.0과 병행 지원. P1 대표 5종(숄더프레스·레터럴·펙덱·레그 익스텐션·어시스트 풀업)도 technical_prototype으로 시험 화면에만 있음(총 9종). `_astra_*/` 폴더는 모두 `.gitignore` 대상
 
 ---
 

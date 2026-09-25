@@ -567,6 +567,7 @@ body { min-height: 100vh; min-height: 100dvh; }
 .proto-view { width: 100%; height: clamp(300px, 52vh, 440px); flex-shrink: 0; background: var(--surface-2);
   border: 1px dashed #5a4010; border-radius: 12px; overflow: hidden; }
 .proto-status { color: var(--text-faint); font-size: 12px; }
+.proto-scrub { width: 100%; accent-color: var(--warn); }
 .proto-status.err { color: var(--danger); }
 .addex-3d-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
   background: var(--accent-dim); color: var(--accent); font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
