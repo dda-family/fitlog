@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v28";
+const APP_VERSION = "v29";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1484,9 +1484,11 @@ const App = {
   // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
   // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
   // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
-  // R2 대표 4종(계약 2.0) + P1 대표 5종(장비 계약 2.1). 모두 technical_prototype — 정식 미리보기 아님.
+  // R2 대표 4종(계약 2.0) + P1 14종(장비 계약 2.1: 대표 5 + 남은 9). 모두 technical_prototype — 정식 미리보기 아님.
   PROTO_3D_IDS: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
-    "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up"],
+    "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up",
+    "incline_barbell_bench_press", "assisted_dip", "seated_cable_row", "dumbbell_front_raise", "reverse_pec_deck",
+    "cable_triceps_pushdown", "barbell_squat", "lying_leg_curl", "hip_abduction"],
   openProto3DLab() {
     const overlay = el("div", { class: "modal-overlay" });
     const sheet = el("div", { class: "modal-sheet proto-sheet" });

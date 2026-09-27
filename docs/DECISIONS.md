@@ -382,3 +382,41 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
   - 순환 유산소 기구: NOT_TESTED
   - 신규 5종 iPhone: USER_TEST_REQUIRED
   - 겨드랑이·어깨 국소 변형: Astra NEEDS_REVIEW 유지(해결되지 않음)
+
+---
+
+## v29 (2026-09-27) — P1 남은 9종 통합 (technical_prototype)
+
+- **대상**: `incline_barbell_bench_press`, `assisted_dip`, `seated_cable_row`, `dumbbell_front_raise`, `reverse_pec_deck`, `cable_triceps_pushdown`, `barbell_squat`, `lying_leg_curl`, `hip_abduction`. Astra 패키지 폴더 이름은 `_astra_p1_competion/`(원문 오타 그대로)이고 `.gitignore`에 추가했다.
+- **자산**
+  - 클립 9개 + 새 장비 10개를 `assets/prototype/stage1/{clips,equipment}/`에 추가했다. FILE_CHANGES의 SHA와 모두 일치한다.
+  - 새 장비: `barbell_olympic`, `bench_adjustable`, `assisted_combo_tower`, `cable_station_low`, `row_v_handle`, `pec_deck_reverse`, `cable_station_high`, `cable_straight_bar`, `lying_leg_curl_machine`, `hip_abduction_adduction_machine`
+  - 공유 인체, `dumbbell_single`, 기존 5종 자산, 스키마, 리그 계약, Three.js는 해시가 같아 복사하지 않았다.
+  - R2 장비 파일명은 재사용하지 않았다(새 파일명).
+- **manifest**
+  - 현재 앱 `equipment-p1-manifest.json`이 Astra 기준 원본(`reference/equipment-p1-original.json`)과 바이트가 같고, 완성본의 기존 5개 항목도 원문이 같음을 확인했다. 그래서 완성본을 적용했다.
+  - 결과: 14종. 최상위 `sourceCommit`만 dfd8384 → 2bcc425로 바뀌었다.
+  - 2.0 `stage1-manifest.json`, 스키마, 리그 계약은 변경하지 않았다.
+- **런타임**: 변경 없음. 현재 2.1 구현으로 그대로 재생된다.
+- **UI**
+  - 시험 화면 `PROTO_3D_IDS`를 18종으로 늘렸다.
+  - 칩이 많아져 3D 영역이 밀려나서, 칩 줄을 가로 스크롤 한 줄로 바꿨다(시험 화면 전용 CSS).
+- **검증** (Chromium SwiftShader)
+  - 신규 9종 123/123:
+    - 257위상 전체 순회, 손 접점 < 0.1mm, 패드 추종 변동 0mm
+    - 머신 시간 = 위상 × 길이, 반복 경계, 재생 중 위상 차이, 숨김 복귀, 스크럽
+    - 361×300/440 정점 기준 구도, 근육 색
+    - 실제 자산 음성 fixture 7종
+  - **twoPoint 실제**: 인클라인 거리 차 최대 1.27e-7m, 로우 3.95e-8m(허용 오차 0.001), scale 1
+  - **cable 실제**:
+    - 로우: `pulley_low`(y 0.53m) → V 핸들, 길이 0.410~0.689m
+    - 푸시다운: `pulley_high`(y 1.95m) → 바, 길이 0.910~1.203m
+    - 원통 양 끝 오차 < 1e-15m
+  - 기존 회귀: 시험 화면 38, 전체 52, 2.1 fixture 85, R2 13, 추가 흐름 21, v28→v29 업그레이드 시뮬레이션 — 모두 PASS
+  - iPhone: USER_TEST_REQUIRED
+- **NEEDS_REVIEW (Astra 보고, 해결되지 않음)**
+  - 겨드랑이·어깨 국소 늘어남(예: 라잉 컬 6.4 → 29mm edge)
+  - 라잉 컬 종아리 패드의 쿠션 겹침(−2.5~−1.0mm)
+  - 힙 패드 접촉 변동 1.3mm
+  - 골반 중앙 미세 변형
+  - 바닥 표시 y=−0.018 때문에 발이 약간 떠 보일 수 있음
