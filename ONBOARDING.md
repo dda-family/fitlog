@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v29
-- CACHE_VERSION (service-worker.js): fitlog-v29
-- 다음 수정 시 둘 다 v30으로 올릴 것
+- APP_VERSION (app.js): v30
+- CACHE_VERSION (service-worker.js): fitlog-v30
+- 다음 수정 시 둘 다 v31로 올릴 것
 
 ---
 
@@ -55,6 +55,7 @@ git push
 - v26: Astra 대표 4종(벤치·푸시업·랫풀다운·경사 걷기)은 **technical_prototype**이다. 설정 → 개발자 · 시험 기능 → 3D 시제품 시험에서만 볼 수 있고, 정식 미리보기(`EXERCISE_PREVIEWS`)에는 품질 승인 전까지 등록 금지. `_astra_stage1/`도 `.gitignore` 대상
 - v28: 장비 계약 2.1(`data/prototype/equipment-p1-manifest.json` + `equipment-manifest.schema.json`)을 2.0과 병행 지원. P1 대표 5종(숄더프레스·레터럴·펙덱·레그 익스텐션·어시스트 풀업)도 technical_prototype으로 시험 화면에만 있음(총 9종). `_astra_*/` 폴더는 모두 `.gitignore` 대상
 - v29: P1 남은 9종(인클라인·딥스·로우·프론트 레이즈·리버스 펙덱·푸시다운·스쿼트·라잉 컬·힙 어브덕션)을 2.1 manifest에 추가. 시험 화면 18종, 3D 자산 준비 21종(정식 3 + 시제품 18). twoPoint·cable 실제 운동 검증 완료
+- v30: Batch A 36종 추가 + 기존 16종 손 방향(Hand/Grip) 수정 clip 교체. 시험 화면 54종(그룹 4개), 3D 후보 기반 57종(정식 3 + 시제품 54). `dumbbell_shrug`는 계약 한계(쇄골 없음)로 미통합 — 앱에 넣지 말 것. 그립 변형 2종(덤벨 오버헤드 익스텐션·덤벨 로우)은 NEEDS_REVIEW
 
 ---
 

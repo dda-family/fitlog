@@ -420,3 +420,57 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
   - 힙 패드 접촉 변동 1.3mm
   - 골반 중앙 미세 변형
   - 바닥 표시 y=−0.018 때문에 발이 약간 떠 보일 수 있음
+
+---
+
+## v30 (2026-09-29) — Batch A 36종 + 기존 16종 Hand/Grip 수정 (technical_prototype)
+
+- **패키지**: `_astra_batch a hand grip_v1/` (`.gitignore` 추가). Astra는 v28 context 기준으로 제작했다. 통합 기준은 현재 앱(v29 39e3e6c)이다.
+- **숫자 구분**
+  - audit 대상: 58종 = 기존 21 + Batch A 37
+  - 기존 지원 기반: 21종(정식 컬 3 + 시제품 18)
+  - 신규 통합: 36종
+  - 슈러그: 1종 미완료
+  - 통합 후 최대 후보 기반: 57종(정식 3 + 시제품 54). 58종 전체 완료 아님
+- **dumbbell_shrug 미통합(DIAGNOSTIC_ONLY)**
+  - rig-v2.0.0에는 쇄골 joint가 없고, 20-track 계약으로는 어깨 상승을 표현할 수 없다.
+  - clip·manifest entry·시험 목록 어디에도 넣지 않았다.
+  - 2.1 런타임은 manifest entry가 있으면 바로 로드 가능하므로, entry 자체를 제외했다(비활성 플래그 개념 없음).
+- **자산**: FILE_CHANGES.csv 기준, 모두 SHA 대조 완료
+  - ADD 57: 클립 36개 + 장비 21개
+    - 장비: ankle_cuff, barbell_a_{barbell_hip_thrust,close_grip_bench_press,straight_arm_pulldown}, bench_flat_a, bench_prone_incline, cable_station_{low_a,middle_a}, cable_support_rail, ez_bar_a_{ez_bar_curl,skullcrusher}, hip_adduction_machine_a, hip_thrust_bench_a, lat_station_a, overhead_dumbbell_a, pullup_dip_station, rope_{cable_crunch,face_pull,overhead_cable_extension,rope_triceps_pushdown}, single_cable_handle
+  - REPLACE_GRIP 17: 기존 16종 clip + `cable_straight_bar`
+    - before SHA가 앱 파일과 모두 일치(충돌 0)
+  - 유지: seated_cable_row, push_up, 컬 3종, 공유 인체, 기타 장비
+  - embedded-comparison GLB 4개는 앱에 원래 없던 검증용 파일이라 추가하지 않았다.
+- **manifest**
+  - 앱 파일이 Astra 기준 원본(`reference/p1-14-original.json`)과 바이트 동일했다. 그래서 패키지 완성본에서 슈러그 블록만 원문 그대로 잘라 적용했다.
+  - 기존 14개 entry는 순서와 의미 값을 유지했고, 수정 자산 SHA 14개만 바뀌었다(clip 13 + 푸시다운 바 1).
+  - 결과: 2.1 50개 entry(기존 14 + 신규 36) + 2.0 4개 = 54
+  - 2.0 manifest는 clip hash가 없으므로 변경하지 않았다. rig 일치만 검사한다.
+- **런타임**: 변경 없음. 손 회전 보정이나 메시 숨김도 추가하지 않았다.
+- **UI**: 시험 화면만 바꿨다.
+  - 그룹 칩 한 줄 추가: 기존 18 / A 가슴·등 12 / A 어깨·팔 12 / A 하체·코어 12. 그룹 탭은 목록만 바꾼다.
+  - 태그 추가: 그립 수정 16종에 `그립 수정`, 그립 변형 2종(`dumbbell_overhead_extension`, `dumbbell_row`)에 `NEEDS_REVIEW`와 설명 한 줄
+- **검증** (Chromium SwiftShader)
+  - 신규 스위트 65/65: 54종 × 97위상
+    - 손바닥·엄지 벡터가 Astra 기록과 최대 4.5e-8rad 차이
+    - 좌우 대칭이 Astra 값과 일치
+    - 방향 의미(Astra와 독립): 풀업·어시스트 풀업·랫풀다운·행잉 레그레이즈는 오버핸드(전방), 친업은 언더핸드, 벤치 3종은 바 그립
+    - 접점 ≤ 2mm(부착 소켓 + 로프 + 고정 바 5종)
+    - twoPoint ≤ 1e-4mm, 케이블 끝 < 1e-15m, 머신 동기화 < 1e-15, 루프 < 1e-14
+    - 361×300/440 구도, 근육 색
+    - 슈러그 미지원(로드 불가·404·목록 없음)
+    - 구·신 hash 혼입 3종 거부, 근육 불일치 거부, 빠른 전환
+  - 기존 회귀: 전체 52, 추가 흐름(컬) 21, 시험 화면 38, 2.1 fixture 85, P1 123 — 모두 PASS
+  - v29→v30 업그레이드 12/12
+    - 구 grip clip 캐시가 제거되고 새 SHA로 교체됨
+    - manifest 50, IndexedDB 동일
+    - 본 운동은 오프라인에서 다시 열림
+  - 시험 화면 UI 11/11: 54칩 전부 로드, 태그, 스크럽, 회전, 백그라운드, 재진입, 가로 넘침 없음
+  - iPhone: USER_TEST_REQUIRED(신규 36 + 그립 수정 16)
+- **NEEDS_REVIEW**
+  - 그립 변형 2종(사용자 수용 여부 결정 필요)
+  - 겨드랑이·어깨·골반 국소 스키닝
+  - face_pull 케이블 최소 길이 2.3cm(0 길이 아님)
+  - 무장비 지지 동작의 바닥·벤치 접촉(검사 범위 밖)

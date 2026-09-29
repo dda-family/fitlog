@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v29";
+const APP_VERSION = "v30";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1484,11 +1484,32 @@ const App = {
   // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
   // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
   // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
-  // R2 대표 4종(계약 2.0) + P1 14종(장비 계약 2.1: 대표 5 + 남은 9). 모두 technical_prototype — 정식 미리보기 아님.
-  PROTO_3D_IDS: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
-    "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up",
-    "incline_barbell_bench_press", "assisted_dip", "seated_cable_row", "dumbbell_front_raise", "reverse_pec_deck",
-    "cable_triceps_pushdown", "barbell_squat", "lying_leg_curl", "hip_abduction"],
+  // R2 대표 4종(계약 2.0) + P1 14종(2.1) + Batch A 36종(2.1). 모두 technical_prototype — 정식 미리보기 아님.
+  // dumbbell_shrug는 계약 한계(쇄골 없음)로 진단용만 존재 — manifest·시험 목록에 넣지 않는다.
+  PROTO_3D_GROUPS: [
+    { label: "기존", ids: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
+      "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up",
+      "incline_barbell_bench_press", "assisted_dip", "seated_cable_row", "dumbbell_front_raise", "reverse_pec_deck",
+      "cable_triceps_pushdown", "barbell_squat", "lying_leg_curl", "hip_abduction"] },
+    { label: "A 가슴·등", ids: ["flat_dumbbell_bench_press", "incline_dumbbell_bench_press", "dip", "close_grip_lat_pulldown",
+      "one_arm_cable_row", "chest_supported_row", "dumbbell_row", "barbell_row", "pull_up", "chin_up",
+      "straight_arm_pulldown", "face_pull"] },
+    { label: "A 어깨·팔", ids: ["barbell_overhead_press", "arnold_press", "cable_lateral_raise", "bent_over_rear_delt_raise",
+      "hammer_curl", "ez_bar_curl", "incline_dumbbell_curl", "rope_triceps_pushdown", "overhead_cable_extension",
+      "dumbbell_overhead_extension", "skullcrusher", "close_grip_bench_press"] },
+    { label: "A 하체·코어", ids: ["dumbbell_lunge", "bulgarian_split_squat", "hip_adduction", "barbell_hip_thrust",
+      "cable_glute_kickback", "crunch", "cable_crunch", "hanging_leg_raise", "lying_leg_raise", "plank", "side_plank", "dead_bug"] },
+  ],
+  get PROTO_3D_IDS() { return this.PROTO_3D_GROUPS.flatMap((g) => g.ids); },
+  // v30 Hand/Grip audit로 clip이 교체된 기존 16종 — iPhone 재확인 대상 표시용
+  PROTO_3D_GRIPFIX: ["dumbbell_shoulder_press", "pec_deck_fly", "leg_extension", "assisted_pull_up", "dumbbell_lateral_raise",
+    "incline_barbell_bench_press", "assisted_dip", "dumbbell_front_raise", "reverse_pec_deck", "cable_triceps_pushdown",
+    "barbell_squat", "lying_leg_curl", "hip_abduction", "barbell_bench_press", "lat_pulldown", "treadmill_incline_walk"],
+  // 그립 변형(2.1 handPose=grip 제약) — 사용자 승인 전 NEEDS_REVIEW
+  PROTO_3D_REVIEW: {
+    dumbbell_overhead_extension: "그립 변형: 덤벨 원판 아래를 받치지 않고 좁은 수평 손잡이를 양손으로 잡아요.",
+    dumbbell_row: "그립 변형: 지지하는 손이 펴진 손바닥이 아니라 쥔 손으로 벤치 가장자리를 짚어요.",
+  },
   openProto3DLab() {
     const overlay = el("div", { class: "modal-overlay" });
     const sheet = el("div", { class: "modal-sheet proto-sheet" });
@@ -1517,15 +1538,30 @@ const App = {
       c.seekPhase(+scrub.value);
     });
     lab.sync = setInterval(() => { const c = lab.ctrl; if (c && c.isPlaying()) scrub.value = String(c.getPhase()); }, 150);
-    const chips = el("div", { class: "addex-chips proto-chips" });
+    // 그룹 한 줄 + 해당 그룹 운동 한 줄(둘 다 가로 스크롤). 그룹 탭은 목록만 바꾸고 로드는 운동 칩을 누를 때.
+    const groupChips = el("div", { class: "addex-chips proto-chips proto-groups" });
+    const chips = el("div", { class: "addex-chips proto-chips proto-ex" });
     const label = (id) => (this.catalogById(id) || {}).label_ko || id;
+    const groupOf = (id) => Math.max(0, this.PROTO_3D_GROUPS.findIndex((g) => g.ids.includes(id)));
+    lab.group = 0;
     const renderChips = () => {
+      groupChips.textContent = "";
+      this.PROTO_3D_GROUPS.forEach((g, i) => groupChips.appendChild(el("button", { class: "addex-chip" + (lab.group === i ? " on" : ""), type: "button",
+        onclick: () => { if (lab.group === i) return; lab.group = i; renderChips(); chips.scrollLeft = 0; } }, g.label + " " + g.ids.length)));
       chips.textContent = "";
-      this.PROTO_3D_IDS.forEach((id) => chips.appendChild(el("button", { class: "addex-chip" + (lab.current === id ? " on" : ""), type: "button", onclick: () => pick(id) }, label(id))));
+      this.PROTO_3D_GROUPS[lab.group].ids.forEach((id) => chips.appendChild(el("button", { class: "addex-chip" + (lab.current === id ? " on" : ""), type: "button", onclick: () => pick(id) }, label(id))));
     };
+    const tagsEl = el("span", { class: "proto-tags" });
+    const noteEl = el("div", { class: "proto-note" });
     const pick = async (id) => {
-      lab.current = id; renderChips();
+      lab.current = id; lab.group = groupOf(id); renderChips();
       nameEl.textContent = label(id);
+      const review = this.PROTO_3D_REVIEW[id];
+      tagsEl.textContent = "";
+      if (review) tagsEl.appendChild(el("span", { class: "proto-status-tag review", text: "NEEDS_REVIEW" }));
+      if (this.PROTO_3D_GRIPFIX.includes(id)) tagsEl.appendChild(el("span", { class: "proto-status-tag grip", text: "그립 수정" }));
+      tagsEl.appendChild(el("span", { class: "proto-status-tag", text: "technical_prototype" }));
+      noteEl.textContent = review || ""; noteEl.hidden = !review;
       const m = this.catalogMappingById(id) || {};
       const key = (cls, t, obj) => { const ids = Object.keys(obj || {}); return ids.length ? el("span", { class: "addex-pv-key" }, [el("i", { class: "addex-pv-dot " + cls }), t + " " + ids.map((r) => this.regionLabel(r)).join("·")]) : null; };
       legend.textContent = "";
@@ -1554,8 +1590,10 @@ const App = {
         el("span", { class: "proto-badge", text: "기술 시제품" }),
         el("span", { text: "품질 검증이 끝나지 않은 시험용 동작이에요. 자세 기준으로 참고하지 말고, 움직임·장비·구도·기기 동작만 확인해 주세요. 정식 운동 미리보기에는 등록되지 않았어요." }),
       ]),
+      groupChips,
       chips,
-      el("div", { class: "proto-titlebar" }, [nameEl, el("span", { class: "proto-status-tag", text: "technical_prototype" })]),
+      el("div", { class: "proto-titlebar" }, [nameEl, tagsEl]),
+      noteEl,
       holder,
       el("div", { class: "addex-pv-bar" }, [playBtn, legend]),
       scrub,
