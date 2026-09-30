@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v30";
+const APP_VERSION = "v31";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1484,8 +1484,8 @@ const App = {
   // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
   // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
   // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
-  // R2 대표 4종(계약 2.0) + P1 14종(2.1) + Batch A 36종(2.1). 모두 technical_prototype — 정식 미리보기 아님.
-  // dumbbell_shrug는 계약 한계(쇄골 없음)로 진단용만 존재 — manifest·시험 목록에 넣지 않는다.
+  // R2 대표 4종(계약 2.0) + P1 14종(2.1) + Batch A 36종(2.1) + Batch B 15종(2.1). 모두 technical_prototype — 정식 미리보기 아님.
+  // dumbbell_shrug는 계약 한계(쇄골 없음)로 미완료 — manifest·시험 목록에 넣지 않는다.
   PROTO_3D_GROUPS: [
     { label: "기존", ids: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
       "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up",
@@ -1499,16 +1499,30 @@ const App = {
       "dumbbell_overhead_extension", "skullcrusher", "close_grip_bench_press"] },
     { label: "A 하체·코어", ids: ["dumbbell_lunge", "bulgarian_split_squat", "hip_adduction", "barbell_hip_thrust",
       "cable_glute_kickback", "crunch", "cable_crunch", "hanging_leg_raise", "lying_leg_raise", "plank", "side_plank", "dead_bug"] },
+    { label: "Batch B", ids: ["decline_barbell_bench_press", "chest_press_machine", "incline_chest_press_machine", "cable_fly",
+      "low_to_high_cable_fly", "machine_row", "machine_shoulder_press", "preacher_curl", "smith_squat", "hack_squat",
+      "leg_press", "seated_leg_curl", "glute_drive_machine", "standing_calf_raise", "seated_calf_raise"] },
   ],
   get PROTO_3D_IDS() { return this.PROTO_3D_GROUPS.flatMap((g) => g.ids); },
-  // v30 Hand/Grip audit로 clip이 교체된 기존 16종 — iPhone 재확인 대상 표시용
-  PROTO_3D_GRIPFIX: ["dumbbell_shoulder_press", "pec_deck_fly", "leg_extension", "assisted_pull_up", "dumbbell_lateral_raise",
-    "incline_barbell_bench_press", "assisted_dip", "dumbbell_front_raise", "reverse_pec_deck", "cable_triceps_pushdown",
-    "barbell_squat", "lying_leg_curl", "hip_abduction", "barbell_bench_press", "lat_pulldown", "treadmill_incline_walk"],
-  // 그립 변형(2.1 handPose=grip 제약) — 사용자 승인 전 NEEDS_REVIEW
+  // v31 Batch A Repair로 자산이 바뀐 운동(clip 12 + 풀업·친업 clearance 장비) — iPhone 재확인 대상 표시용
+  PROTO_3D_FIXED: ["flat_dumbbell_bench_press", "incline_dumbbell_bench_press", "chest_supported_row", "barbell_row",
+    "pull_up", "chin_up", "barbell_overhead_press", "arnold_press", "ez_bar_curl", "overhead_cable_extension", "skullcrusher",
+    "bulgarian_split_squat", "crunch", "lying_leg_raise"],
+  // 현재 계약(2.1)으로 해결할 수 없는 항목 — 기존 자산 유지, 완료 처리하지 않음
+  PROTO_3D_BLOCKED: {
+    dumbbell_row: "계약 미해결: 움직이는 왼쪽만 근육을 강조할 수 없어 양쪽이 함께 표시돼요. 받치는 손도 쥔 손이에요.",
+    cable_lateral_raise: "계약 미해결: 움직이는 오른쪽만 근육을 강조할 수 없어 양쪽이 함께 표시돼요.",
+    dumbbell_overhead_extension: "계약 미해결: 덤벨 원판 아래를 손바닥으로 받치는 자세가 아니라 수평 손잡이를 양손으로 잡는 변형이에요.",
+  },
+  // 통합 가능하지만 iPhone에서 우선 확인할 항목
   PROTO_3D_REVIEW: {
-    dumbbell_overhead_extension: "그립 변형: 덤벨 원판 아래를 받치지 않고 좁은 수평 손잡이를 양손으로 잡아요.",
-    dumbbell_row: "그립 변형: 지지하는 손이 펴진 손바닥이 아니라 쥔 손으로 벤치 가장자리를 짚어요.",
+    ez_bar_curl: "확인 필요: 새 EZ바 모양과 손목 굽힘(약 37.5°)이 자연스러운지.",
+    crunch: "확인 필요: 손이 귀 옆에 있는지, 쥔 손 모양과 손목 자세.",
+    preacher_curl: "확인 필요: 위팔이 패드에 닿는지, EZ바와 손목 굽힘(약 33.9°).",
+    cable_fly: "확인 필요: 정확한 참고 영상 없이 제작 — 플라이 궤적이 맞는지.",
+    glute_drive_machine: "확인 필요: 골반 패드 이동, 단순화된 안내 링크가 어색하지 않은지.",
+    seated_calf_raise: "확인 필요: 무릎 패드·허벅지 접촉과 손 지지 모습.",
+    bulgarian_split_squat: "확인 필요: 수정본이지만 자동 검사에서 뒷발·정강이가 벤치 패드 안으로 들어가 있어요(표면에서 최대 약 3.7cm).",
   },
   openProto3DLab() {
     const overlay = el("div", { class: "modal-overlay" });
@@ -1556,12 +1570,14 @@ const App = {
     const pick = async (id) => {
       lab.current = id; lab.group = groupOf(id); renderChips();
       nameEl.textContent = label(id);
-      const review = this.PROTO_3D_REVIEW[id];
+      const blocked = this.PROTO_3D_BLOCKED[id], review = this.PROTO_3D_REVIEW[id];
       tagsEl.textContent = "";
+      if (blocked) tagsEl.appendChild(el("span", { class: "proto-status-tag review", text: "계약 미해결" }));
       if (review) tagsEl.appendChild(el("span", { class: "proto-status-tag review", text: "NEEDS_REVIEW" }));
-      if (this.PROTO_3D_GRIPFIX.includes(id)) tagsEl.appendChild(el("span", { class: "proto-status-tag grip", text: "그립 수정" }));
+      if (this.PROTO_3D_FIXED.includes(id)) tagsEl.appendChild(el("span", { class: "proto-status-tag grip", text: "수정본" }));
       tagsEl.appendChild(el("span", { class: "proto-status-tag", text: "technical_prototype" }));
-      noteEl.textContent = review || ""; noteEl.hidden = !review;
+      const note = blocked || review || "";
+      noteEl.textContent = note; noteEl.hidden = !note;
       const m = this.catalogMappingById(id) || {};
       const key = (cls, t, obj) => { const ids = Object.keys(obj || {}); return ids.length ? el("span", { class: "addex-pv-key" }, [el("i", { class: "addex-pv-dot " + cls }), t + " " + ids.map((r) => this.regionLabel(r)).join("·")]) : null; };
       legend.textContent = "";

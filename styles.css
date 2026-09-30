@@ -563,7 +563,7 @@ body { min-height: 100vh; min-height: 100dvh; }
 /* 시제품 목록이 18종이라 한 줄 가로 스크롤 — 3D 영역이 첫 화면에 보이도록 */
 .proto-chips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
 .proto-chips .addex-chip { flex: 0 0 auto; }
-.proto-groups { gap: 6px; }
+.proto-groups { gap: 6px; flex-wrap: wrap; overflow-x: visible; }
 .proto-groups .addex-chip { min-height: 32px; padding: 0 9px; font-size: 13px; }
 .proto-titlebar { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .proto-name { font-size: 18px; font-weight: 700; }

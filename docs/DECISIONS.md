@@ -474,3 +474,62 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
   - 겨드랑이·어깨·골반 국소 스키닝
   - face_pull 케이블 최소 길이 2.3cm(0 길이 아님)
   - 무장비 지지 동작의 바닥·벤치 접촉(검사 범위 밖)
+
+---
+
+## v31 (2026-09-30) — Batch A Repair + Batch B 15종 (technical_prototype)
+
+- **패키지**: `_astra_repair-b-delivery/` (`.gitignore` 추가). 시작 기준은 v30 `3ffa23c`이고, 앱 manifest 50개 entry가 Astra baseline-50과 완전히 같았다(이후 앱 변경 없음).
+- **자산**: FILE_CHANGES 46건 = ADD 32 + REPLACE 13 + MERGE 1
+  - REPLACE 13: before SHA 13건 모두 앱 파일과 일치해 충돌 0
+    - clip 12: flat/incline DB bench, chest_supported_row, barbell_row, barbell_overhead_press, arnold_press, ez_bar_curl, overhead_cable_extension, skullcrusher, bulgarian_split_squat, crunch, lying_leg_raise
+    - 장비 1: `rope_overhead_cable_extension`
+  - ADD 32
+    - Batch B clip 15 + 장비 15(`machine_b_*`)
+    - 공용 `ez_bar_shared_b`(ez_bar_curl·skullcrusher·preacher_curl)
+    - `pullup_clearance_b`(pull_up·chin_up 공유, body clip 유지, 카메라만 변경)
+  - 참조가 끊긴 `ez_bar_a_ez_bar_curl`·`ez_bar_a_skullcrusher`는 삭제하지 않았다(후속 정리 대상). `pullup_dip_station`은 dip·hanging_leg_raise가 계속 사용한다.
+- **manifest**
+  - 앱 파일에 `manifest-entry-patch.json` 29개 entry를 적용한 결과가 패키지 65종과 같다. 50 → 65, 슈러그 없음, 최상위 값 동일.
+  - 기존 entry 변경은 14개: clip SHA 12, pull/chin 장비·카메라, EZ바 참조, 로프 SHA. 미해결 3종은 변경 없음.
+  - 2.0 manifest, 스키마, 리그 계약은 변경하지 않았다.
+- **런타임**: 변경 없음. DESIGN_ONLY 제안 3건(support palm·unilateral highlight·shoulder translation, 후보 2.2.0-prototype.1)은 구현하지 않았다.
+- **UI**: 시험 화면만 바꿨다.
+  - `Batch B 15` 그룹 추가. 그룹 칩 5개는 줄바꿈해 모두 보이게 했다.
+  - 태그를 교체했다. v30의 `그립 수정`을 없애고 다음을 붙였다.
+    - `수정본` 14(Repair 12 + pull/chin)
+    - `계약 미해결` 3(dumbbell_row·cable_lateral_raise·dumbbell_overhead_extension)
+    - `NEEDS_REVIEW` 7(ez_bar_curl·crunch·preacher_curl·cable_fly·glute_drive_machine·seated_calf_raise + bulgarian_split_squat)
+- **검증** (Chromium SwiftShader)
+  - v31 스위트 97/98: 69종 × 97위상
+    - 손 방향이 Astra 기록과 < 5e-8rad
+    - 급회전(인접 위상 관절 회전) < 6°
+    - 접점, twoPoint, 케이블, 동기화, 루프, 구도, 근육 색
+    - Batch B 가동부 추적: 핸들·발판·롤러·패드 ↔ 몸 0.000mm. 시티드 카프 허벅지 패드만 6.9mm.
+  - Repair 개별 지표
+    - 덤벨 벤치 2종: 팔꿈치가 손 아래
+    - chest_supported_row 급회전 3.9°(이전 160°)
+    - barbell_row 바 roll/yaw 0
+    - OHP 최소 굴곡 14.4°, Arnold 28.7°, overhead cable 5.0°(상완 변동 0mm)
+    - skullcrusher 상완 변동 0mm
+    - leg raise 발목 상대회전 0°
+    - crunch 손-머리 13.1cm
+    - EZ 지그재그 확인
+    - pull/chin: 머리·목 피부 관통 0, 여유 10.6cm(구 기구는 관통)
+  - **FAIL 1 — bulgarian_split_squat**: 뒷다리 정강이·발 피부가 전 위상에서 벤치 패드 안에 있다(표면에서 최대 37.5mm). Astra는 발등 기준점 1개만 측정했다. 구 clip도 관통이 있었으므로 회귀는 아니다. Astra 재수정 대상.
+  - 참고 관통 조사(69종, 양면 광선 홀짝)
+    - 좌석·패드에 몸이 최대 약 4cm 잠기는 것은 기존 운동에도 공통이다.
+    - 그 이상: decline 무릎 롤러 57mm, seated leg curl 허벅지 고정 패드 51mm
+  - 구·신 혼입 5종 거부, 근육 불일치 거부, 빠른 전환, 슈러그 미지원
+  - 기존 회귀: 전체 52, 추가 흐름(컬) 21, 시험 화면 38, 2.1 fixture 85, P1 123 — 모두 PASS
+  - v30→v31 업그레이드 13/13
+    - 구 clip·구 로프 캐시가 제거되고 새 SHA로 교체됨
+    - manifest 65, IndexedDB 동일
+    - 본 운동은 오프라인에서 다시 열림
+  - 시험 화면 UI 11/11(69칩)
+  - iPhone: USER_TEST_REQUIRED
+- **수량**
+  - 카탈로그 79
+  - 최대 3D 후보 72 = 정식 컬 3 + 2.0 대표 4 + 2.1 65
+  - 정식 미리보기는 컬 3종(v25)뿐이고, 시제품 중 사용자 승인된 것은 0. 시제품 69는 모두 technical_prototype / USER_TEST_REQUIRED.
+  - 슈러그 1 미완료, Batch C 6 미제작

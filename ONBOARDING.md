@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v30
-- CACHE_VERSION (service-worker.js): fitlog-v30
-- 다음 수정 시 둘 다 v31로 올릴 것
+- APP_VERSION (app.js): v31
+- CACHE_VERSION (service-worker.js): fitlog-v31
+- 다음 수정 시 둘 다 v32로 올릴 것
 
 ---
 
@@ -56,6 +56,7 @@ git push
 - v28: 장비 계약 2.1(`data/prototype/equipment-p1-manifest.json` + `equipment-manifest.schema.json`)을 2.0과 병행 지원. P1 대표 5종(숄더프레스·레터럴·펙덱·레그 익스텐션·어시스트 풀업)도 technical_prototype으로 시험 화면에만 있음(총 9종). `_astra_*/` 폴더는 모두 `.gitignore` 대상
 - v29: P1 남은 9종(인클라인·딥스·로우·프론트 레이즈·리버스 펙덱·푸시다운·스쿼트·라잉 컬·힙 어브덕션)을 2.1 manifest에 추가. 시험 화면 18종, 3D 자산 준비 21종(정식 3 + 시제품 18). twoPoint·cable 실제 운동 검증 완료
 - v30: Batch A 36종 추가 + 기존 16종 손 방향(Hand/Grip) 수정 clip 교체. 시험 화면 54종(그룹 4개), 3D 후보 기반 57종(정식 3 + 시제품 54). `dumbbell_shrug`는 계약 한계(쇄골 없음)로 미통합 — 앱에 넣지 말 것. 그립 변형 2종(덤벨 오버헤드 익스텐션·덤벨 로우)은 NEEDS_REVIEW
+- v31: Batch B 15종 추가 + Batch A Repair(clip 12 + 풀업·친업 clearance 장비 + 공용 EZ바). 시험 화면 69종(그룹 5개), 3D 후보 72종(정식 3 + 시제품 69). 계약 미해결 3종(dumbbell_row·cable_lateral_raise 편측 강조, dumbbell_overhead_extension 손바닥 받침)은 기존 자산 유지 — 런타임 우회 금지. DESIGN_ONLY 계약 제안(2.2 후보)은 사용자 결정 전 구현 금지. 불가리안 뒷발 패드 관통은 Astra 재수정 대상
 
 ---
 

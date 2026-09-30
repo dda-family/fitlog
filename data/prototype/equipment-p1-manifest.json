@@ -1141,7 +1141,7 @@
         "src": "assets/clips/flat_dumbbell_bench_press.glb",
         "name": "flat_dumbbell_bench_press",
         "duration": 4.8,
-        "sha256": "2e73f5567e3c39d87c1da3f49c7a1355258a7b73775ec6c1f8ac62fb29fb0b93"
+        "sha256": "58416c3b1bed5d3914dbd7e8480360e32ce86672722fcf36c63cc2bf82465126"
       },
       "equipment": [
         {
@@ -1247,7 +1247,7 @@
         "src": "assets/clips/incline_dumbbell_bench_press.glb",
         "name": "incline_dumbbell_bench_press",
         "duration": 4.8,
-        "sha256": "8d61a5b130ff2985d2d0f657d9a719b3bce63a01023eb297296f7c7397c9b307"
+        "sha256": "b5e624a5f31d8e5838d7ff991a08d3da4e7416112bddec11f756132efeebe209"
       },
       "equipment": [
         {
@@ -1642,7 +1642,7 @@
         "src": "assets/clips/chest_supported_row.glb",
         "name": "chest_supported_row",
         "duration": 4.8,
-        "sha256": "6a8c22123974f414e0b1946287921fd4c73df785391c621a75f5abafeb228419"
+        "sha256": "7e243d75902bdcafe55bf88a797c719f4b7115044da6160ff3c05e0fe2279f33"
       },
       "equipment": [
         {
@@ -1831,7 +1831,7 @@
         "src": "assets/clips/barbell_row.glb",
         "name": "barbell_row",
         "duration": 4.8,
-        "sha256": "73adb2e72e816396b58c4516bd17c12801af28c5aa9d0f4e0995a2ffe6a27dd9"
+        "sha256": "3370311da288d8fbc282bd0a14d7d8dbc9452b5007534b31d01a2659c3dbe76c"
       },
       "equipment": [
         {
@@ -1919,8 +1919,8 @@
       "equipment": [
         {
           "id": "station",
-          "src": "assets/equipment/pullup_dip_station.glb",
-          "sha256": "7848148fdbdbb37341a52fff3cfedd962a8027785b00e6d67291b895d8b25f76",
+          "src": "assets/equipment/pullup_clearance_b.glb",
+          "sha256": "157aab2e1fb634f5ee0689ceadc978771fd10461aa6627a8f35238ec47e10e0f",
           "attachment": {
             "type": "fixed",
             "position": [
@@ -1941,10 +1941,10 @@
       "camera": {
         "target": [
           0,
-          1.0,
+          1.1,
           0.05
         ],
-        "height": 2.65,
+        "height": 3.05,
         "minWidth": 2.2,
         "azimuth": 0.7,
         "elevation": 0.15
@@ -1977,8 +1977,8 @@
       "equipment": [
         {
           "id": "station",
-          "src": "assets/equipment/pullup_dip_station.glb",
-          "sha256": "7848148fdbdbb37341a52fff3cfedd962a8027785b00e6d67291b895d8b25f76",
+          "src": "assets/equipment/pullup_clearance_b.glb",
+          "sha256": "157aab2e1fb634f5ee0689ceadc978771fd10461aa6627a8f35238ec47e10e0f",
           "attachment": {
             "type": "fixed",
             "position": [
@@ -1999,10 +1999,10 @@
       "camera": {
         "target": [
           0,
-          1.0,
+          1.1,
           0.05
         ],
-        "height": 2.65,
+        "height": 3.05,
         "minWidth": 2.2,
         "azimuth": 0.7,
         "elevation": 0.15
@@ -2263,7 +2263,7 @@
         "src": "assets/clips/barbell_overhead_press.glb",
         "name": "barbell_overhead_press",
         "duration": 4.8,
-        "sha256": "7c7cbe714f430c8c402b90f0899bde21191696013e15f31af96708b4d28e4668"
+        "sha256": "c1b7238ede26a5fe20720bafbaa757b54ab38a77e76186d6c2c8e36776906717"
       },
       "equipment": [
         {
@@ -2345,7 +2345,7 @@
         "src": "assets/clips/arnold_press.glb",
         "name": "arnold_press",
         "duration": 4.8,
-        "sha256": "c8b1afc8e604006033177ba8680420def3300032a242c5ce25b65459d876f138"
+        "sha256": "4b65d694963bb47356d5ad6c253f0601c9b9bf6e1d4941111f90d6624887ac3e"
       },
       "equipment": [
         {
@@ -2722,13 +2722,13 @@
         "src": "assets/clips/ez_bar_curl.glb",
         "name": "ez_bar_curl",
         "duration": 4.8,
-        "sha256": "3993eefb0bced39c1dd9a4f838198bf7395f08f6b8fc3d63339ba677b0e83b83"
+        "sha256": "56ac88f69dc8d3bc8e3f061c81a916a8d2a48f295401bad0eb5098239be825c4"
       },
       "equipment": [
         {
           "id": "bar",
-          "src": "assets/equipment/ez_bar_a_ez_bar_curl.glb",
-          "sha256": "bd952dd66efd559b581ffb82ae3376f94741c5ef5e2a26e49e4af75073cd44b0",
+          "src": "assets/equipment/ez_bar_shared_b.glb",
+          "sha256": "f70667f6f44f00e4456936d2d79d12e9c13defdcd81b70b36bc108cdca59f0bf",
           "attachment": {
             "type": "twoPoint",
             "targets": [
@@ -3008,7 +3008,7 @@
         "src": "assets/clips/overhead_cable_extension.glb",
         "name": "overhead_cable_extension",
         "duration": 4.8,
-        "sha256": "d63be3fc2397869dc5ef3433448c216b7dd14de18331f0a4ca073b9acc0776e4"
+        "sha256": "95055f1109205259d11e1e37a24ba484bb08fb10df95913f43b8b20873e48da2"
       },
       "equipment": [
         {
@@ -3033,7 +3033,7 @@
         {
           "id": "rope",
           "src": "assets/equipment/rope_overhead_cable_extension.glb",
-          "sha256": "8bb57813c85b84ccadebb617f759a428fa11e32214b127ecbc5236d26939f127",
+          "sha256": "6addb0046d8880d8de9fdc7fa2598bc29d5f6ba27be7094a6de92709a7c3509e",
           "attachment": {
             "type": "fixed",
             "position": [
@@ -3208,7 +3208,7 @@
         "src": "assets/clips/skullcrusher.glb",
         "name": "skullcrusher",
         "duration": 4.8,
-        "sha256": "a3564faf02aae55b19af2fae777d4e7cb88bb356ee0e834bce62329cb9aacbdf"
+        "sha256": "a2a67cc03dd47d8ccc6ba552f6654f2986132ace364efca16813b25152164c63"
       },
       "equipment": [
         {
@@ -3232,8 +3232,8 @@
         },
         {
           "id": "bar",
-          "src": "assets/equipment/ez_bar_a_skullcrusher.glb",
-          "sha256": "f7552eaa71b228257ff2d7aa3124beb48edb49ed55137e10dc78239266815ac9",
+          "src": "assets/equipment/ez_bar_shared_b.glb",
+          "sha256": "f70667f6f44f00e4456936d2d79d12e9c13defdcd81b70b36bc108cdca59f0bf",
           "attachment": {
             "type": "twoPoint",
             "targets": [
@@ -3490,7 +3490,7 @@
         "src": "assets/clips/bulgarian_split_squat.glb",
         "name": "bulgarian_split_squat",
         "duration": 4.8,
-        "sha256": "03c0bb6c4a4d09ad906288c1a41baf0fc15e0c0947ceec92aa4976c3eeca3a2c"
+        "sha256": "bac9c9eb012f2ad73a66fe92552bcc7de712643c19ca8e57a3a8d4214fa84146"
       },
       "equipment": [
         {
@@ -3875,7 +3875,7 @@
         "src": "assets/clips/crunch.glb",
         "name": "crunch",
         "duration": 4.8,
-        "sha256": "5ec64dbf1cdc0e645ff5d4f5f9c4af310813745c0641f122c60cea3339fb31af"
+        "sha256": "f80316add751215426503a7feabeec7ed2a39c9c469548b5cc8aaeddb2d29f8e"
       },
       "equipment": [],
       "cables": [],
@@ -4073,7 +4073,7 @@
         "src": "assets/clips/lying_leg_raise.glb",
         "name": "lying_leg_raise",
         "duration": 4.8,
-        "sha256": "bb03091e54d6a9fa25e2d4b7c35742bec8bb20cf02e16c71a94a505061c15ab8"
+        "sha256": "8d1035bc272c16c9b8f2e76b15c9c845b94dcc5e4da19c1facc7efedefa038ec"
       },
       "equipment": [],
       "cables": [],
@@ -4207,6 +4207,1198 @@
         "minor": {
           "hip_flexors": 0.25
         }
+      }
+    },
+    "decline_barbell_bench_press": {
+      "catalogId": "decline_barbell_bench_press",
+      "label": "디클라인 바벨 벤치프레스",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/decline_barbell_bench_press.glb",
+        "name": "decline_barbell_bench_press",
+        "duration": 4.8,
+        "sha256": "194994c3bb3a997c687b4927ad8cf496cdca44d57395e372a71ac69f3c811f19"
+      },
+      "equipment": [
+        {
+          "id": "bar",
+          "src": "assets/equipment/barbell_olympic.glb",
+          "sha256": "1f614ca9bb9d4ed20f60891bf28e2e1aa53512bd67c8d1df14d1d91ba86e1235",
+          "attachment": {
+            "type": "twoPoint",
+            "targets": [
+              {
+                "space": "body",
+                "node": "grip_L",
+                "point": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              {
+                "space": "body",
+                "node": "grip_R",
+                "point": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ],
+            "anchors": [
+              "press_grip_L",
+              "press_grip_R"
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ],
+            "localUp": [
+              0,
+              0,
+              1
+            ],
+            "distanceTolerance": 0.002
+          }
+        },
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_decline_barbell_bench_press.glb",
+          "sha256": "f6e4527cbe8bc48fb97b71ec922132999d314aff4f0a038be05c1b135b1699dd",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          0.75,
+          0.15
+        ],
+        "height": 2.35,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "chest": 1.0
+        },
+        "secondary": {
+          "triceps": 0.5
+        },
+        "minor": {
+          "front_delts": 0.25
+        }
+      }
+    },
+    "chest_press_machine": {
+      "catalogId": "chest_press_machine",
+      "label": "체스트 프레스 머신",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/chest_press_machine.glb",
+        "name": "chest_press_machine",
+        "duration": 4.8,
+        "sha256": "b7a18c6c53b51d8ae3365312dbae46dea57caaf5964c2e0c014f156879dac343"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_chest_press_machine.glb",
+          "sha256": "7055dece91a88ce9be6407ac4a9df873d25e6f1e379950bcd5fd180ebc500410",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "chest_press_machine",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "chest": 1.0
+        },
+        "secondary": {
+          "front_delts": 0.5,
+          "triceps": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "incline_chest_press_machine": {
+      "catalogId": "incline_chest_press_machine",
+      "label": "인클라인 체스트 프레스 머신",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/incline_chest_press_machine.glb",
+        "name": "incline_chest_press_machine",
+        "duration": 4.8,
+        "sha256": "9e919abcbc0735cf5764ec7f150eebfb8af7e1af843e97156050eeb3584227cf"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_incline_chest_press_machine.glb",
+          "sha256": "f5dacfa2f4198d34d918e792db081000f34721746a4ed11d27e4e1d085a0b8ba",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "incline_chest_press_machine",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "upper_chest": 1.0
+        },
+        "secondary": {
+          "chest": 0.5,
+          "front_delts": 0.5,
+          "triceps": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "cable_fly": {
+      "catalogId": "cable_fly",
+      "label": "케이블 플라이",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/cable_fly.glb",
+        "name": "cable_fly",
+        "duration": 4.8,
+        "sha256": "4614696518da82d38ba8828bacdf886c3863957c2dc84fcd0731867032b50200"
+      },
+      "equipment": [
+        {
+          "id": "handle_L",
+          "src": "assets/equipment/single_cable_handle.glb",
+          "sha256": "443d1dab3f6718e919cf7f62522b9d08041468b9e5a627cbfad8d54f5662b6ec",
+          "attachment": {
+            "type": "node",
+            "target": {
+              "space": "body",
+              "node": "grip_L",
+              "point": [
+                0,
+                0,
+                0
+              ]
+            },
+            "anchor": "handle_grip",
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "id": "handle_R",
+          "src": "assets/equipment/single_cable_handle.glb",
+          "sha256": "443d1dab3f6718e919cf7f62522b9d08041468b9e5a627cbfad8d54f5662b6ec",
+          "attachment": {
+            "type": "node",
+            "target": {
+              "space": "body",
+              "node": "grip_R",
+              "point": [
+                0,
+                0,
+                0
+              ]
+            },
+            "anchor": "handle_grip",
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_cable_fly.glb",
+          "sha256": "d7ec192e6f784bc77a602058ac1f144a9787119e845699f37527e8705a293957",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "cables": [
+        {
+          "id": "machine_handle_L",
+          "from": {
+            "space": "equipment",
+            "instance": "machine",
+            "node": "pulley_L",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "to": {
+            "space": "equipment",
+            "instance": "handle_L",
+            "node": "cable_eye",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": 0.003
+        },
+        {
+          "id": "machine_handle_R",
+          "from": {
+            "space": "equipment",
+            "instance": "machine",
+            "node": "pulley_R",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "to": {
+            "space": "equipment",
+            "instance": "handle_R",
+            "node": "cable_eye",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": 0.003
+        }
+      ],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.6,
+        "minWidth": 3.0,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "chest": 1.0
+        },
+        "secondary": {
+          "upper_chest": 0.5
+        },
+        "minor": {
+          "front_delts": 0.25
+        }
+      }
+    },
+    "low_to_high_cable_fly": {
+      "catalogId": "low_to_high_cable_fly",
+      "label": "인클라인 케이블 플라이",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/low_to_high_cable_fly.glb",
+        "name": "low_to_high_cable_fly",
+        "duration": 4.8,
+        "sha256": "953b49349fa860d984f2ede4f8b267d341511ae166ef2d3eee2d3a9816ef03be"
+      },
+      "equipment": [
+        {
+          "id": "handle_L",
+          "src": "assets/equipment/single_cable_handle.glb",
+          "sha256": "443d1dab3f6718e919cf7f62522b9d08041468b9e5a627cbfad8d54f5662b6ec",
+          "attachment": {
+            "type": "node",
+            "target": {
+              "space": "body",
+              "node": "grip_L",
+              "point": [
+                0,
+                0,
+                0
+              ]
+            },
+            "anchor": "handle_grip",
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "id": "handle_R",
+          "src": "assets/equipment/single_cable_handle.glb",
+          "sha256": "443d1dab3f6718e919cf7f62522b9d08041468b9e5a627cbfad8d54f5662b6ec",
+          "attachment": {
+            "type": "node",
+            "target": {
+              "space": "body",
+              "node": "grip_R",
+              "point": [
+                0,
+                0,
+                0
+              ]
+            },
+            "anchor": "handle_grip",
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_low_to_high_cable_fly.glb",
+          "sha256": "75cd9a542da6ea4efbda5bc0a53cd40f8ad7afecbf437f758d4ee7f98f4bc594",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "cables": [
+        {
+          "id": "machine_handle_L",
+          "from": {
+            "space": "equipment",
+            "instance": "machine",
+            "node": "pulley_L",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "to": {
+            "space": "equipment",
+            "instance": "handle_L",
+            "node": "cable_eye",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": 0.003
+        },
+        {
+          "id": "machine_handle_R",
+          "from": {
+            "space": "equipment",
+            "instance": "machine",
+            "node": "pulley_R",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "to": {
+            "space": "equipment",
+            "instance": "handle_R",
+            "node": "cable_eye",
+            "point": [
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": 0.003
+        }
+      ],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.6,
+        "minWidth": 3.0,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "upper_chest": 1.0
+        },
+        "secondary": {
+          "chest": 0.5,
+          "front_delts": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "machine_row": {
+      "catalogId": "machine_row",
+      "label": "머신 로우",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/machine_row.glb",
+        "name": "machine_row",
+        "duration": 4.8,
+        "sha256": "80b09dd70b1099e17380261526a8a62c75d8a189fc65fe749463ca794866e740"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_machine_row.glb",
+          "sha256": "66bd4986d1013019ca90f70780fc47c3c564145f84d48c0133d8661b2b3c906b",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "machine_row",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "mid_back": 1.0,
+          "lats": 1.0
+        },
+        "secondary": {
+          "biceps": 0.5,
+          "rear_delts": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "machine_shoulder_press": {
+      "catalogId": "machine_shoulder_press",
+      "label": "머신 숄더프레스",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/machine_shoulder_press.glb",
+        "name": "machine_shoulder_press",
+        "duration": 4.8,
+        "sha256": "83f7d91fe9d28b1d00c7f9504a87394442533b970c76adc95d897bf300dc9ca4"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_machine_shoulder_press.glb",
+          "sha256": "8e58a86afa37fb071383ded06a2ecec4a19cb7ed944f803bdbee4b0388aaae13",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "machine_shoulder_press",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "front_delts": 1.0
+        },
+        "secondary": {
+          "side_delts": 0.5,
+          "triceps": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "preacher_curl": {
+      "catalogId": "preacher_curl",
+      "label": "프리처 EZ바 컬",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/preacher_curl.glb",
+        "name": "preacher_curl",
+        "duration": 4.8,
+        "sha256": "d993b9321e5655dbfabcdfb92ae93c6fdc19d1d40e568f89a3be872a7fb4f5cf"
+      },
+      "equipment": [
+        {
+          "id": "bar",
+          "src": "assets/equipment/ez_bar_shared_b.glb",
+          "sha256": "f70667f6f44f00e4456936d2d79d12e9c13defdcd81b70b36bc108cdca59f0bf",
+          "attachment": {
+            "type": "twoPoint",
+            "targets": [
+              {
+                "space": "body",
+                "node": "grip_L",
+                "point": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              {
+                "space": "body",
+                "node": "grip_R",
+                "point": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ],
+            "anchors": [
+              "grip_L",
+              "grip_R"
+            ],
+            "up": [
+              0,
+              0,
+              1
+            ],
+            "localUp": [
+              0,
+              0,
+              1
+            ],
+            "distanceTolerance": 0.002
+          }
+        },
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_preacher_curl.glb",
+          "sha256": "681d402a713dc078e9440757a4d5d8ba50a67bc5c3ecb3eee8a9a8a2db6ba8e6",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          0.75,
+          0.15
+        ],
+        "height": 2.35,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "biceps": 1.0
+        },
+        "secondary": {},
+        "minor": {
+          "forearms": 0.25
+        }
+      }
+    },
+    "smith_squat": {
+      "catalogId": "smith_squat",
+      "label": "스미스 머신 스쿼트",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/smith_squat.glb",
+        "name": "smith_squat",
+        "duration": 4.8,
+        "sha256": "9ae31502b6d5cbe727a23586e5adfca6751760fcdb8423b1ca935fe026c140a4"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_smith_squat.glb",
+          "sha256": "e52803721a09d0bbcdebe40fa7353966c08a99a4ee7da6ae704609ff6e7c80e8",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "smith_squat",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "quads": 1.0,
+          "glutes": 1.0
+        },
+        "secondary": {
+          "adductors": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "hack_squat": {
+      "catalogId": "hack_squat",
+      "label": "핵 스쿼트",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/hack_squat.glb",
+        "name": "hack_squat",
+        "duration": 4.8,
+        "sha256": "550cd4bab393b20c2082f31e3b40fcd2e5090d248c82befa14598ba97ed62b3f"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_hack_squat.glb",
+          "sha256": "1852d7027f08aae9d2f698cca8b8a6a4b21e7373f4c915e9e79daf6350be1537",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "hack_squat",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "quads": 1.0
+        },
+        "secondary": {
+          "glutes": 0.5,
+          "adductors": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "leg_press": {
+      "catalogId": "leg_press",
+      "label": "레그프레스",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/leg_press.glb",
+        "name": "leg_press",
+        "duration": 4.8,
+        "sha256": "c5479643d0225b48c6514e8600fe01825a1f00dbe0330184bda68f3fd35faab8"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_leg_press.glb",
+          "sha256": "ba332bd81138e138d469f61ad300801f79eda92d4144df1191a6612641ab807f",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "leg_press",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          0.75,
+          0.15
+        ],
+        "height": 2.35,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "quads": 1.0
+        },
+        "secondary": {
+          "glutes": 0.5,
+          "adductors": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "seated_leg_curl": {
+      "catalogId": "seated_leg_curl",
+      "label": "시티드 레그 컬",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/seated_leg_curl.glb",
+        "name": "seated_leg_curl",
+        "duration": 4.8,
+        "sha256": "71fd832e327c827a91d8f5691a511e2af255b72ec7e7b1b4037c91f7cdaf3f5c"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_seated_leg_curl.glb",
+          "sha256": "b07ec48ac654158c9caecae1b1ed562c2bd510a3f210e708b12e235c4645e6de",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "seated_leg_curl",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "hamstrings": 1.0
+        },
+        "secondary": {},
+        "minor": {
+          "calves": 0.25
+        }
+      }
+    },
+    "glute_drive_machine": {
+      "catalogId": "glute_drive_machine",
+      "label": "글루트 드라이브 머신",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/glute_drive_machine.glb",
+        "name": "glute_drive_machine",
+        "duration": 4.8,
+        "sha256": "6be012a68e40b33f2e68c3be44b5af41669fca702fee79aa3f22a3881d8b1d48"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_glute_drive_machine.glb",
+          "sha256": "12da2eba81934adae36b737a250b8fa44dbd78bc25eada1d3e48e52502853cc2",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "glute_drive_machine",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          0.75,
+          0.15
+        ],
+        "height": 2.35,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "glutes": 1.0
+        },
+        "secondary": {
+          "hamstrings": 0.5
+        },
+        "minor": {}
+      }
+    },
+    "standing_calf_raise": {
+      "catalogId": "standing_calf_raise",
+      "label": "머신 스탠딩 카프레이즈",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/standing_calf_raise.glb",
+        "name": "standing_calf_raise",
+        "duration": 4.8,
+        "sha256": "a90e7dd3b60a801bbfd14042f51d9a9b4f75654498fefaee3004b7d707d1277f"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_standing_calf_raise.glb",
+          "sha256": "a96028083c197c0ecb2a1c615c53f9805e65e1737554fe13ee821c08acd3cf5b",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "standing_calf_raise",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          1,
+          0.1
+        ],
+        "height": 2.65,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "calves": 1.0
+        },
+        "secondary": {},
+        "minor": {}
+      }
+    },
+    "seated_calf_raise": {
+      "catalogId": "seated_calf_raise",
+      "label": "시티드 카프레이즈",
+      "rigId": "rig-v2.0.0",
+      "status": "technical_prototype",
+      "clip": {
+        "src": "assets/clips/seated_calf_raise.glb",
+        "name": "seated_calf_raise",
+        "duration": 4.8,
+        "sha256": "348062234a6d9ce0098ccddba3a22e882626fcb2af6d89f80f6071ec1aa1a096"
+      },
+      "equipment": [
+        {
+          "id": "machine",
+          "src": "assets/equipment/machine_b_seated_calf_raise.glb",
+          "sha256": "502bed8835f013fe6173abbf49a4cda595c3f0b680707e7ca7bfa8340935f216",
+          "attachment": {
+            "type": "fixed",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "quaternion": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "animation": {
+            "clip": "seated_calf_raise",
+            "sync": "normalizedPhase",
+            "phaseOffset": 0,
+            "cycles": 1,
+            "duration": 4.8
+          }
+        }
+      ],
+      "cables": [],
+      "camera": {
+        "target": [
+          0,
+          0.75,
+          0.15
+        ],
+        "height": 2.35,
+        "minWidth": 2.7,
+        "azimuth": 0.7,
+        "elevation": 0.16
+      },
+      "handPose": "grip",
+      "muscles": {
+        "primary": {
+          "calves": 1.0
+        },
+        "secondary": {},
+        "minor": {}
       }
     }
   }
