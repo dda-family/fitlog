@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v31";
+const APP_VERSION = "v32";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1484,8 +1484,9 @@ const App = {
   // ───────── 3D 기술 시제품 시험 화면 (설정 → 개발자) ─────────
   // 정식 미리보기(EXERCISE_PREVIEWS·운동 상세)와 분리: 품질 승인 전 자산을 일반 운동 목록에 노출하지 않는다.
   // 공유 인체 + 클립 + 장비 구조는 runtime/exercise-prototype-3d.js, 시트를 열 때만 로드한다.
-  // R2 대표 4종(계약 2.0) + P1 14종(2.1) + Batch A 36종(2.1) + Batch B 15종(2.1). 모두 technical_prototype — 정식 미리보기 아님.
-  // dumbbell_shrug는 계약 한계(쇄골 없음)로 미완료 — manifest·시험 목록에 넣지 않는다.
+  // R2 대표 4종(계약 2.0) + 2.1 시제품(P1 14 + Batch A 35 + Batch B 15 + Batch C 6). 모두 technical_prototype — 정식 미리보기 아님.
+  // 3D 미지원(활성 manifest·시험 목록 없음, 카탈로그·기록은 유지): dumbbell_shrug(어깨 이동 계약),
+  // dumbbell_overhead_extension(손바닥 받침 계약, v32에서 제외).
   PROTO_3D_GROUPS: [
     { label: "기존", ids: ["barbell_bench_press", "push_up", "lat_pulldown", "treadmill_incline_walk",
       "dumbbell_shoulder_press", "dumbbell_lateral_raise", "pec_deck_fly", "leg_extension", "assisted_pull_up",
@@ -1496,34 +1497,32 @@ const App = {
       "straight_arm_pulldown", "face_pull"] },
     { label: "A 어깨·팔", ids: ["barbell_overhead_press", "arnold_press", "cable_lateral_raise", "bent_over_rear_delt_raise",
       "hammer_curl", "ez_bar_curl", "incline_dumbbell_curl", "rope_triceps_pushdown", "overhead_cable_extension",
-      "dumbbell_overhead_extension", "skullcrusher", "close_grip_bench_press"] },
+      "skullcrusher", "close_grip_bench_press"] },
     { label: "A 하체·코어", ids: ["dumbbell_lunge", "bulgarian_split_squat", "hip_adduction", "barbell_hip_thrust",
       "cable_glute_kickback", "crunch", "cable_crunch", "hanging_leg_raise", "lying_leg_raise", "plank", "side_plank", "dead_bug"] },
     { label: "Batch B", ids: ["decline_barbell_bench_press", "chest_press_machine", "incline_chest_press_machine", "cable_fly",
       "low_to_high_cable_fly", "machine_row", "machine_shoulder_press", "preacher_curl", "smith_squat", "hack_squat",
       "leg_press", "seated_leg_curl", "glute_drive_machine", "standing_calf_raise", "seated_calf_raise"] },
+    { label: "Batch C Cardio", ids: ["treadmill_flat_walk", "treadmill_run", "stationary_bike", "stepmill", "elliptical", "rowing_ergometer"] },
   ],
   get PROTO_3D_IDS() { return this.PROTO_3D_GROUPS.flatMap((g) => g.ids); },
-  // v31 Batch A Repair로 자산이 바뀐 운동(clip 12 + 풀업·친업 clearance 장비) — iPhone 재확인 대상 표시용
-  PROTO_3D_FIXED: ["flat_dumbbell_bench_press", "incline_dumbbell_bench_press", "chest_supported_row", "barbell_row",
-    "pull_up", "chin_up", "barbell_overhead_press", "arnold_press", "ez_bar_curl", "overhead_cable_extension", "skullcrusher",
-    "bulgarian_split_squat", "crunch", "lying_leg_raise"],
+  // v32 Latest Repair로 자산이 바뀐 운동 — iPhone 재확인 대상 표시용
+  PROTO_3D_FIXED: ["cable_triceps_pushdown", "ez_bar_curl", "skullcrusher", "preacher_curl", "bulgarian_split_squat", "crunch",
+    "low_to_high_cable_fly", "side_plank", "lying_leg_raise", "seated_leg_curl", "glute_drive_machine", "seated_calf_raise"],
   // 현재 계약(2.1)으로 해결할 수 없는 항목 — 기존 자산 유지, 완료 처리하지 않음
   PROTO_3D_BLOCKED: {
     dumbbell_row: "계약 미해결: 움직이는 왼쪽만 근육을 강조할 수 없어 양쪽이 함께 표시돼요. 받치는 손도 쥔 손이에요.",
     cable_lateral_raise: "계약 미해결: 움직이는 오른쪽만 근육을 강조할 수 없어 양쪽이 함께 표시돼요.",
-    dumbbell_overhead_extension: "계약 미해결: 덤벨 원판 아래를 손바닥으로 받치는 자세가 아니라 수평 손잡이를 양손으로 잡는 변형이에요.",
   },
   // 통합 가능하지만 iPhone에서 우선 확인할 항목
   PROTO_3D_REVIEW: {
-    ez_bar_curl: "확인 필요: 새 EZ바 모양과 손목 굽힘(약 37.5°)이 자연스러운지.",
-    crunch: "확인 필요: 손이 귀 옆에 있는지, 쥔 손 모양과 손목 자세.",
-    preacher_curl: "확인 필요: 위팔이 패드에 닿는지, EZ바와 손목 굽힘(약 33.9°).",
     cable_fly: "확인 필요: 정확한 참고 영상 없이 제작 — 플라이 궤적이 맞는지.",
-    glute_drive_machine: "확인 필요: 골반 패드 이동, 단순화된 안내 링크가 어색하지 않은지.",
-    seated_calf_raise: "확인 필요: 무릎 패드·허벅지 접촉과 손 지지 모습.",
-    bulgarian_split_squat: "확인 필요: 수정본이지만 자동 검사에서 뒷발·정강이가 벤치 패드 안으로 들어가 있어요(표면에서 최대 약 3.7cm).",
+    bulgarian_split_squat: "확인 필요: 정강이 관통은 해결됐지만 뒷발등이 벤치에서 약 1.7cm 떠 있고, 덤벨 원판이 허벅지 옆에 조금 겹쳐 보일 수 있어요.",
+    preacher_curl: "확인 필요: 몸통은 패드에서 떨어졌지만 위팔이 패드에 약 2cm 잠겨 보일 수 있어요.",
+    treadmill_flat_walk: "확인 필요: 외부 보행 데이터와 비교하지 않았어요 — 보폭·발 착지·팔 스윙이 자연스러운지.",
+    treadmill_run: "확인 필요: 외부 보행 데이터와 비교하지 않았어요 — 두 발이 뜨는 구간·무릎 굽힘·팔 스윙이 달리기다운지.",
   },
+
   openProto3DLab() {
     const overlay = el("div", { class: "modal-overlay" });
     const sheet = el("div", { class: "modal-sheet proto-sheet" });

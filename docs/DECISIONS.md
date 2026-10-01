@@ -533,3 +533,72 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
   - 최대 3D 후보 72 = 정식 컬 3 + 2.0 대표 4 + 2.1 65
   - 정식 미리보기는 컬 3종(v25)뿐이고, 시제품 중 사용자 승인된 것은 0. 시제품 69는 모두 technical_prototype / USER_TEST_REQUIRED.
   - 슈러그 1 미완료, Batch C 6 미제작
+
+---
+
+## v32 (2026-10-01) — Final Repair 12 + Batch C 유산소 6 + 덤벨 오버헤드 익스텐션 3D 보류
+
+- **패키지**: `_astra_final_c/` (`.gitignore` 추가). 시작 기준은 v31 `5e75909`이고, 앱 manifest SHA가 Astra baseline(65, `36f306…`)과 같았다. SHA256SUMS 546개도 모두 일치했다.
+- **자산**: FILE_CHANGES 31건 = REPLACE 18 + ADD 12 + MERGE_ENTRIES 1
+  - REPLACE 18: baseline SHA 18건 모두 앱과 일치해 충돌 0
+    - clip 12: pushdown, ez_bar_curl, skullcrusher, preacher, bulgarian, crunch, low_to_high_fly, side_plank, lying_leg_raise, seated_leg_curl, glute_drive, seated_calf
+    - 장비 6: ez_bar_shared_b + machine_b 5종
+  - ADD 12: Batch C clip 6 + `cardio_*` 장비 6
+- **manifest**
+  - patch(upsert 18, remove 1)를 entry 단위로 적용했다. 65 − 1 + 6 = 70.
+  - 결과는 패키지 샘플과 내용·순서가 같다(앱이 baseline과 동일했기 때문).
+  - EZ 3종은 attachment가 twoPoint → node(grip_L 기준)로 바뀌었다.
+  - 2.0 manifest, 스키마, 리그 계약은 변경하지 않았다.
+- **dumbbell_overhead_extension**
+  - 활성 2.1 manifest와 시험 목록에서 제외했다(3D_UNSUPPORTED / DEFERRED, HAND_SUPPORT_POSE_CONTRACT_REQUIRED).
+  - 카탈로그, 검색 별칭, 기록, IndexedDB는 유지했다. GLB 파일은 삭제하지 않았지만 참조하는 곳이 없다.
+- **런타임**: 변경 없음. Batch C는 기존 fixed + 장비 animation + normalizedPhase + cable endpoint만으로 재생된다. 장비 회전 키도 축약하지 않았다.
+- **UI**: 시험 화면만 바꿨다.
+  - `Batch C Cardio 6` 그룹을 추가해 그룹은 6개(18/12/11/12/15/6), 운동은 74종이다.
+  - 태그
+    - `수정본`: 이번 Repair 12
+    - `계약 미해결` 2: dumbbell_row, cable_lateral_raise
+    - `NEEDS_REVIEW` 5: cable_fly, bulgarian(뒷발 1.7cm 뜸), preacher(위팔 패드 2.2cm 잠김), 걷기·달리기(보행 미대조)
+- **검증** (Chromium SwiftShader)
+  - v32 스위트 110/111(74종 × 97위상)
+    - 기존 56종은 손 방향이 Astra 기록과 < 5e-8rad
+    - 접점(최종 패키지 접점 사양 포함), twoPoint, 케이블, 동기화, 루프, 구도, 근육 색, 가동부 추적
+    - 급회전: 4배 촘촘한 샘플링으로 끊김 없음 확인
+  - Repair
+    - 푸시다운: 이두-삼두 전후 차 구 −80mm → 신 +26~+78mm, 삼두만 강조. 매핑은 바꾸지 않았다.
+    - 크런치: 손목 0°, 손-머리 16cm
+    - 레그레이즈: 정강이-발 2.9°
+    - EZ 3종: node 부착, 양손 접점 0mm
+    - 불가리안: 정강이 관통 0(v31 37.5mm)
+    - 프리처: 몸통 관통 0
+    - 글루트: 상체 잠김 최대 4mm(v31 40mm)
+    - 사이드 플랭크: 오른손이 어깨 위 61cm 이상
+    - 인클라인 플라이: 몸통 35°, low pulley y 0.14m
+    - 레그 컬·카프·글루트: 손잡이 양손 접점 0mm
+  - Batch C
+    - 자전거·엘립티컬 crank 360°, 좌우 pedal 180°
+    - 트레드밀 roller −2880°, 벨트 상면 −Z
+    - 걷기는 비행 구간 0, 달리기는 6%. 발바닥 관통 < 2mm, 제자리 유지.
+    - 스텝밀: 골반 고정, step 하강
+    - 로잉: 다리 80% 0.21 ≤ 팔 시작 0.29, 팔 복귀 0.49 ≤ 다리 굽힘 0.69
+  - **FAIL 1 — bulgarian**: 관통은 해결됐지만 뒷발 피부와 벤치의 최소 간격이 17.3mm로 떠 있다(기준 ≤ 10mm). iPhone 확인 대상.
+  - 참고 관통 조사(정보용)
+    - seated_leg_curl 허벅지-고정 패드 46.5mm
+    - elliptical 발끝-페달 링크 17.5mm
+    - bulgarian 덤벨 원판-허벅지 23mm
+    - preacher 위팔-패드 22.5mm
+    - 좌석 잠김 약 35mm는 기존과 공통
+  - 구·신 혼입 6종 거부(EZ twoPoint 구 manifest 포함), 근육 불일치 거부, 로드 실패 후 다음 운동 정상, 빠른 전환, 미지원 2종 로드 불가
+  - 기존 회귀: 전체 52, 추가 흐름(컬) 21, 시험 화면 38, 2.1 fixture 85, P1 123 — 모두 PASS
+  - v31→v32 업그레이드 13/13
+    - 구 crunch·EZ바 캐시가 제거되고 새 SHA로 교체됨
+    - manifest 70, IndexedDB 동일
+    - 본 운동 7개는 오프라인에서 다시 열림
+  - 시험 화면 UI 11/11(74칩)
+  - iPhone: USER_TEST_REQUIRED
+- **수량**
+  - 카탈로그 79
+  - 3D 후보 77 = 2.1 70 + 2.0 4 + 정식 컬 3
+  - 정식 미리보기는 컬 3종뿐이고, 시제품 74는 technical_prototype / USER_TEST_REQUIRED
+  - 3D 미지원 2: shrug, overhead extension
+  - 편측 강조 계약 미해결 2: 3D는 있음
