@@ -84,5 +84,6 @@ export function createExercisePreview(container, options = {}) {
     const grips={};if(model){model.updateMatrixWorld(true);for(const n of ['grip_L','grip_R',...(entry?.equipmentNodes||[]),'cable_dynamic']){const o=model.getObjectByName(n);if(o)grips[n]={position:o.getWorldPosition(new T.Vector3()).toArray(),quaternion:o.getWorldQuaternion(new T.Quaternion()).toArray(),scale:o.scale.toArray()};}}
     return {state,reason,exerciseId:options.exerciseId,playing,visible,intersecting,framePending:!!frame,renderCount:renders,time:action?.time||0,yaw,listenerCount:events.length,colors,grips,geometryCount:renderer?.info.memory.geometries||0,textures:renderer?.info.memory.textures||0,drawCalls:renderer?.info.render.calls||0,triangles:renderer?.info.render.triangles||0};
   }
-  const controller={ready,play,pause,seek,setVisible,setColors,highlight,setAngle:view,destroy,getDiagnostics:diagnostics};return controller;
+  const resetView=()=>{if(entry)view(entry.exerciseId==='cable_curl'?1.00:.35);};
+  const controller={ready,play,pause,seek,setVisible,setColors,highlight,setAngle:view,resetView,destroy,getDiagnostics:diagnostics};return controller;
 }

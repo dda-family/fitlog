@@ -699,5 +699,7 @@ export function createPrototypePreview(container, options = {}) {
 
   // 검증용 읽기 전용 참조(장면 객체를 바꾸지 않음): 부착·접점·케이블 수치 확인에 사용.
   const debug = () => ({ scene, camera, body, instances: instances.slice(), cables21: cables21.slice() });
-  return { ready, select, play, pause, seek, seekPhase, getPhase, setVisible, setAngle: view, destroy, getDiagnostics: diagnostics, frameFit, debug, isPlaying: () => playing };
+  // 서비스 운동 상세의 "시점 초기화": manifest 기본 방위각으로 되돌린다.
+  const resetView = () => { if (entry) view(entry.camera.azimuth); };
+  return { ready, select, play, pause, seek, seekPhase, getPhase, setVisible, setAngle: view, resetView, destroy, getDiagnostics: diagnostics, frameFit, debug, isPlaying: () => playing };
 }

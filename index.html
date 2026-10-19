@@ -30,19 +30,39 @@
   <!-- 뷰 컨테이너: 탭에 따라 하나만 표시 -->
   <main id="app">
     <section id="view-today"  class="view"><!-- TODO(Phase1): 오늘 화면 (app.js) --></section>
-    <section id="view-history" class="view" hidden><!-- TODO(Phase3): 기록 화면 --></section>
-    <section id="view-guide"   class="view" hidden><!-- TODO(Phase3): 가이드/커스터마이징 --></section>
+    <!-- 내 운동: 기록 | 루틴 서브탭. 기록은 기존 기록 화면(#view-history)을 그대로 이 안에서 렌더 -->
+    <section id="view-my" class="view" hidden>
+      <div id="my-head" class="my-head"></div>
+      <div id="view-history" class="my-pane"></div>
+      <div id="my-routine" class="my-pane" hidden></div>
+    </section>
+    <section id="view-find"    class="view" hidden></section>
     <section id="view-ai"      class="view" hidden><!-- TODO(Phase4): AI 코치 --></section>
     <section id="view-settings" class="view" hidden><!-- TODO: 설정 (타이머·알림 테스트·백업) --></section>
   </main>
 
-  <!-- 하단 네비게이션 (최대 5개) — UX_SPEC §2 -->
+  <!-- 하단 네비게이션 (5개, 아이콘 위·라벨 아래) — 아이콘은 currentColor 상속으로 활성/비활성 색 공유 -->
   <nav id="tabbar" class="tabbar">
-    <button class="tab" data-view="today" aria-current="true">오늘</button>
-    <button class="tab" data-view="history">기록</button>
-    <button class="tab" data-view="guide">가이드</button>
-    <button class="tab" data-view="ai">AI 코치</button>
-    <button class="tab" data-view="settings">설정</button>
+    <button class="tab" data-view="today" aria-current="true">
+      <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="m9 15 2.2 2.2L15.5 13"/></svg>
+      <span class="tab-label">오늘</span>
+    </button>
+    <button class="tab" data-view="my">
+      <span class="tab-ico tab-ico-my" aria-hidden="true"></span>
+      <span class="tab-label">내 운동</span>
+    </button>
+    <button class="tab" data-view="find">
+      <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+      <span class="tab-label">운동 찾기</span>
+    </button>
+    <button class="tab" data-view="ai">
+      <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.75a8.25 8.25 0 0 0-7.1 12.45L3.75 20.25l4.05-1.15A8.25 8.25 0 1 0 12 3.75z"/><path d="M12 8.25l.95 2.3 2.3.95-2.3.95-.95 2.3-.95-2.3-2.3-.95 2.3-.95z"/></svg>
+      <span class="tab-label">AI 코치</span>
+    </button>
+    <button class="tab" data-view="settings">
+      <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span class="tab-label">설정</span>
+    </button>
   </nav>
 
   <script>
@@ -84,7 +104,7 @@
     })();
   </script>
 
-  <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app -->
+  <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app → my-workout → exercise-finder -->
   <script src="./db.js"></script>
   <script src="./evaluation.js"></script>
   <script src="./timer.js"></script>
@@ -93,6 +113,9 @@
   <script src="./catalog-data.js"></script>
   <script src="./heatmap.js"></script>
   <script src="./app.js"></script>
+  <!-- 내 운동(기록·루틴)·운동 찾기/상세: App 객체를 확장(app.js 다음에 로드, DOMContentLoaded 전) -->
+  <script src="./my-workout.js"></script>
+  <script src="./exercise-finder.js"></script>
   <script>
     // Service Worker 등록 (배포 시 HTTPS 필요)
     if ("serviceWorker" in navigator) {

@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v32
-- CACHE_VERSION (service-worker.js): fitlog-v32
-- 다음 수정 시 둘 다 v33으로 올릴 것
+- APP_VERSION (app.js): v33
+- CACHE_VERSION (service-worker.js): fitlog-v33
+- 다음 수정 시 둘 다 v34로 올릴 것
 
 ---
 
@@ -58,6 +58,7 @@ git push
 - v30: Batch A 36종 추가 + 기존 16종 손 방향(Hand/Grip) 수정 clip 교체. 시험 화면 54종(그룹 4개), 3D 후보 기반 57종(정식 3 + 시제품 54). `dumbbell_shrug`는 계약 한계(쇄골 없음)로 미통합 — 앱에 넣지 말 것. 그립 변형 2종(덤벨 오버헤드 익스텐션·덤벨 로우)은 NEEDS_REVIEW
 - v31: Batch B 15종 추가 + Batch A Repair(clip 12 + 풀업·친업 clearance 장비 + 공용 EZ바). 시험 화면 69종(그룹 5개), 3D 후보 72종(정식 3 + 시제품 69). 계약 미해결 3종(dumbbell_row·cable_lateral_raise 편측 강조, dumbbell_overhead_extension 손바닥 받침)은 기존 자산 유지 — 런타임 우회 금지. DESIGN_ONLY 계약 제안(2.2 후보)은 사용자 결정 전 구현 금지. 불가리안 뒷발 패드 관통은 Astra 재수정 대상
 - v32: Final Repair 12 + Batch C 유산소 6. 2.1 manifest 70, 시험 화면 74종(그룹 6개), 3D 후보 77. dumbbell_overhead_extension은 3D 보류(manifest·시험 목록 제외, 카탈로그·기록 유지). 3D 미지원 2(shrug·overhead extension), 편측 강조 미해결 2. 장비 회전(crank 360°, roller 다회전)은 의도된 것 — 키 축약 금지
+- v33: 정보구조 개편 — 하단 탭 오늘/내 운동/운동 찾기/AI 코치/설정. 내 운동 = 기록(주간·월간·기간 탐색) | 루틴(한 주간 루틴 = dayTemplateMap, 내 루틴 = 템플릿). 운동 추가 바텀시트 폐기 → 전체 화면 운동 찾기 → 공용 운동 상세. 새 파일 `my-workout.js`(내 운동), `exercise-finder.js`(운동 찾기·상세·3D 뷰어 정리). **사용자 요청으로 시제품 3D(74종)도 서비스 운동 상세에 같은 런타임으로 표시**("참고용 동작" 안내, 기술 옵션은 시험 화면에만). 스키마 변경 없음
 
 ---
 
