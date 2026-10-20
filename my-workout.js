@@ -299,11 +299,13 @@
       if (m.screen === "weekDay") return this._routineWeekDay(root, m);
       if (m.screen === "new") return this._routineNew(root, m);
       if (m.screen === "finder" && m.finder) { m.finder.root = root; return this.renderFinder(m.finder); }
-      if (m.screen === "detail" || m.screen === "reorder") {
+      if (["detail", "reorder", "group", "groupEdit"].includes(m.screen)) {
         const t = this.template(m.routineId);
         if (!t) { m.screen = "home"; return this._routineHome(root, m); }
         this.guideEditTemplateId = t.id;   // 기존 편집기의 ▲▼ 이동이 참조
         if (m.screen === "reorder") return this._routineReorder(root, m, t);
+        if (m.screen === "group") return this._routineGroupMake(root, m, t);
+        if (m.screen === "groupEdit") return this._routineGroupEdit(root, m, t);
         if (this.editingGuideId) return this._routineGuideEdit(root, m, t);
         return this._routineDetail(root, m, t);
       }
@@ -391,7 +393,7 @@
       if (want && want !== this.session.templateId && this.template(want)) { this.startSession(want); this.loadLastResults(want); }
     },
 
-    // 루틴 상세: 운동 = 무엇. 요일은 표시하지 않는다.
+    // 루틴 상세: 운동 = 무엇. 요일은 표시하지 않는다. 연속 세트는 한 묶음으로 보여준다.
     _routineDetail(root, m, t) {
       const guides = this.guidesOf(t.id);
       const menuBtn = el("button", { class: "sub-more", type: "button", "aria-label": "루틴 옵션", "aria-haspopup": "menu" }, [icon(ICO.more)]);
@@ -416,24 +418,44 @@
       root.appendChild(el("div", { class: "rt-count", text: `${guides.length}개 운동` }));
       const list = el("div", { class: "group-list" });
       if (!guides.length) list.appendChild(el("div", { class: "gl-empty", text: "아직 운동이 없어요. 아래에서 추가하세요." }));
-      guides.forEach((g) => {
-        const ex = this.exercise(g.exerciseId); if (!ex) return;
-        const line = this.guideLine(ex, g, false).replace(/^(가이드|목표)\s+/, "");
-        list.appendChild(el("div", { class: "gl-row ex-row" }, [
-          el("button", { class: "ex-row-main", type: "button", onclick: () => this._openRoutineExercise(m, ex) }, [
-            el("span", { class: "gl-stack" }, [
-              el("span", { class: "gl-title" }, [ex.name, g.optional ? el("span", { class: "gl-tag", text: "선택" }) : null, ex.warmupEnabled ? el("span", { class: "gl-tag", text: "워밍업" }) : null]),
-              el("span", { class: "gl-sub", text: line }),
-            ]),
-            icon(ICO.chev, "ui-ico gl-chev"),
+      this.routineBlocks(t.id).forEach((b) => {
+        if (b.type === "single") { const r = this._routineExRow(m, b.guide, true); if (r) list.appendChild(r); return; }
+        const box = el("div", { class: "rt-group" }, [
+          el("div", { class: "rt-group-head" }, [
+            el("span", { class: "rt-group-title", text: "연속 세트" }),
+            el("button", { class: "ex-row-edit", type: "button", "aria-label": "연속 세트 설정", onclick: () => this._goRoutine("groupEdit", { groupId: b.id }) }, "설정"),
           ]),
-          el("button", { class: "ex-row-edit", type: "button", "aria-label": `${ex.name} 편집`, onclick: () => { this.editingGuideId = g.id; this.renderMy(); window.scrollTo(0, 0); } }, "편집"),
-        ]));
+        ]);
+        b.guides.forEach((g) => { const r = this._routineExRow(m, g, false); if (r) box.appendChild(r); });
+        box.appendChild(el("div", { class: "rt-group-foot", text: `${b.meta.rounds}세트 · 세트 후 휴식 ${this.fmtDur(b.meta.restSeconds)}` }));
+        list.appendChild(box);
       });
       root.appendChild(list);
       root.appendChild(el("button", { class: "btn btn-block rt-add-ex", type: "button", onclick: () => {
         this._goRoutine("finder", { finder: this.newFinderCtx({ mode: "addToRoutine", target: { id: t.id }, onExit: () => this._goRoutine("detail", { finder: null }) }) });
       } }, "＋ 운동 추가"));
+    },
+    // 운동 한 줄의 목표 표시. withSets=false면 연속 세트 안(세트 수는 그룹을 따름).
+    _itemTargetText(g, ex, withSets) {
+      if (!withSets) {
+        if (this.isDurationItem(g, ex)) return this.durTargetText(g, ex);
+        if (this.isCardio(ex, g)) return this.cardioGuideLine(g, ex).replace(/^목표\s+/, "");
+        return `${g.targetWeight == null ? "" : this.weightText(ex, g.targetWeight) + " · "}${g.minReps}~${g.maxReps}회`;
+      }
+      return this.guideLine(ex, g, false).replace(/^(가이드|목표)\s+/, "");
+    },
+    _routineExRow(m, g, withSets) {
+      const ex = this.exercise(g.exerciseId); if (!ex) return null;
+      return el("div", { class: "gl-row ex-row" }, [
+        el("button", { class: "ex-row-main", type: "button", onclick: () => this._openRoutineExercise(m, ex) }, [
+          el("span", { class: "gl-stack" }, [
+            el("span", { class: "gl-title" }, [ex.name, g.optional ? el("span", { class: "gl-tag", text: "선택" }) : null, ex.warmupEnabled ? el("span", { class: "gl-tag", text: "워밍업" }) : null]),
+            el("span", { class: "gl-sub", text: this._itemTargetText(g, ex, withSets) }),
+          ]),
+          icon(ICO.chev, "ui-ico gl-chev"),
+        ]),
+        el("button", { class: "ex-row-edit", type: "button", "aria-label": `${ex.name} 편집`, onclick: () => { this.editingGuideId = g.id; this.renderMy(); window.scrollTo(0, 0); } }, "편집"),
+      ]);
     },
     // 루틴 운동 행 → 공용 운동 상세(3D·근육·설명). 뒤로 가면 루틴 상세.
     _openRoutineExercise(m, ex) {
@@ -453,10 +475,99 @@
       const item = (label, fn, cls) => el("button", { class: "rt-menu-item" + (cls ? " " + cls : ""), type: "button", role: "menuitem", onclick: fn }, label);
       return el("div", { class: "rt-menu", role: "menu" }, [
         item("이름 변경", () => this.renameRoutine(t.id)),
-        item("운동 순서 변경", () => this._goRoutine("reorder", { reorder: this.guidesOf(t.id).map((g) => g.id) })),
+        item("운동 순서 변경", () => this._goRoutine("reorder", { reorder: this.routineBlocks(t.id).map((b) => this._blockKey(b)) })),
+        item("연속 세트 만들기", () => this._goRoutine("group", { groupSel: [] })),
         item("루틴 복제", () => this.duplicateRoutine(t.id)),
         item("루틴 삭제", () => this.deleteRoutine(t.id), "danger"),
       ]);
+    },
+    _blockKey(b) { return b.type === "group" ? "g:" + b.id : "s:" + b.guide.id; },
+
+    // 연속 세트 만들기: 붙어 있는 독립 운동 2개 이상 선택 → 반복 횟수·세트 후 휴식 → 묶기(루틴 구성 정보만 추가)
+    _routineGroupMake(root, m, t) {
+      const blocks = this.routineBlocks(t.id), sel = m.groupSel || (m.groupSel = []);
+      root.appendChild(this._subHead("연속 세트 만들기", () => this._goRoutine("detail", { groupSel: null })));
+      root.appendChild(el("div", { class: "rt-hint", text: "쉬지 않고 이어서 할 운동을 2개 이상 고르세요. 바로 붙어 있는 운동만 묶을 수 있어요." }));
+      const list = el("div", { class: "group-list" });
+      blocks.forEach((b) => {
+        if (b.type === "group") {
+          list.appendChild(el("div", { class: "gl-row static sel-row disabled" }, [el("span", { class: "sel-box" }), el("span", { class: "gl-stack" }, [
+            el("span", { class: "gl-title", text: b.guides.map((g) => (this.exercise(g.exerciseId) || {}).name).join(" + ") }), el("span", { class: "gl-sub", text: "이미 연속 세트" })])]));
+          return;
+        }
+        const g = b.guide, ex = this.exercise(g.exerciseId); if (!ex) return;
+        const cardio = this.isCardio(ex, g), on = sel.includes(g.id);
+        list.appendChild(el("button", { class: "gl-row sel-row" + (cardio ? " disabled" : ""), type: "button", disabled: cardio ? "" : null, "aria-pressed": on ? "true" : "false",
+          onclick: () => { if (on) sel.splice(sel.indexOf(g.id), 1); else sel.push(g.id); this.renderMy(); } }, [
+          el("span", { class: "sel-box" }),
+          el("span", { class: "gl-stack" }, [el("span", { class: "gl-title", text: ex.name }), el("span", { class: "gl-sub", text: cardio ? "유산소는 묶을 수 없어요" : this._itemTargetText(g, ex, true) })]),
+        ]));
+      });
+      root.appendChild(list);
+      const idx = blocks.map((b, i) => (b.type === "single" && sel.includes(b.guide.id) ? i : -1)).filter((i) => i >= 0);
+      const contiguous = idx.length >= 2 && idx.every((v, k) => k === 0 || v === idx[k - 1] + 1);
+      if (sel.length && !contiguous) {
+        root.appendChild(el("div", { class: "rt-hint warn", text: sel.length < 2 ? "운동을 하나 더 고르세요." : "떨어져 있는 운동은 묶을 수 없어요. 먼저 순서를 바꾸거나 붙어 있는 운동만 고르세요." }));
+        return;
+      }
+      if (!contiguous) return;
+      const chosen = idx.map((i) => blocks[i].guide);
+      const setsList = [...new Set(chosen.map((g) => g.targetSets))];
+      const same = setsList.length === 1;
+      const roundsIn = el("input", { type: "number", inputmode: "numeric", class: "text-input", min: "1", value: same ? String(setsList[0]) : "", placeholder: "예: 3" });
+      const restIn = el("input", { type: "number", inputmode: "numeric", class: "text-input", min: "0", value: String(this.settings.setRestSeconds || 90) });
+      const err = el("div", { class: "range-err", hidden: true });
+      root.appendChild(el("label", { class: "field-label", text: "반복 (세트)" }));
+      if (!same) root.appendChild(el("div", { class: "rt-hint warn", text: `고른 운동의 세트 수가 달라요 (${setsList.join(", ")}세트). 연속 세트를 몇 번 반복할지 정하세요. 각 운동의 원래 세트 수는 지워지지 않아요.` }));
+      root.appendChild(roundsIn);
+      root.appendChild(el("label", { class: "field-label", text: "세트 후 휴식 (초)" }));
+      root.appendChild(restIn);
+      root.appendChild(err);
+      root.appendChild(el("button", { class: "btn btn-primary btn-block rt-save", type: "button", onclick: async () => {
+        const rounds = Math.round(Number(roundsIn.value)), rest = Math.round(Number(restIn.value));
+        if (!(rounds >= 1)) { err.textContent = "반복 세트 수를 1 이상으로 입력하세요."; err.hidden = false; return; }
+        if (!(rest >= 0)) { err.textContent = "휴식 시간을 0초 이상으로 입력하세요."; err.hidden = false; return; }
+        const gid = "grp-" + Date.now();
+        try {
+          t.groups = Object.assign({}, t.groups || {}, { [gid]: { rounds, restSeconds: rest } });
+          await window.FitlogDB.DB.put("routineTemplates", t);
+          for (const g of chosen) { g.groupId = gid; await window.FitlogDB.DB.put("routineGuides", g); }
+          await this.reloadDefs();
+        } catch (e) { console.error("[Fitlog] 연속 세트 저장 실패", e); err.textContent = "저장 중 오류가 발생했어요."; err.hidden = false; return; }
+        this._goRoutine("detail", { groupSel: null });
+        this.toast("연속 세트로 묶었어요");
+      } }, "묶기"));
+    },
+    // 연속 세트 설정·해제. 해제는 그룹 정보만 지우고 운동과 각자의 설정은 그대로 남긴다.
+    _routineGroupEdit(root, m, t) {
+      const b = this.routineBlocks(t.id).find((x) => x.type === "group" && x.id === m.groupId);
+      if (!b) { m.screen = "detail"; return this._routineDetail(root, m, t); }
+      root.appendChild(this._subHead("연속 세트", () => this._goRoutine("detail", { groupId: null })));
+      root.appendChild(el("div", { class: "rt-hint", text: b.guides.map((g) => (this.exercise(g.exerciseId) || {}).name).join(" → ") }));
+      const roundsIn = el("input", { type: "number", inputmode: "numeric", class: "text-input", min: "1", value: String(b.meta.rounds) });
+      const restIn = el("input", { type: "number", inputmode: "numeric", class: "text-input", min: "0", value: String(b.meta.restSeconds) });
+      const err = el("div", { class: "range-err", hidden: true });
+      root.appendChild(el("label", { class: "field-label", text: "반복 (세트)" })); root.appendChild(roundsIn);
+      root.appendChild(el("label", { class: "field-label", text: "세트 후 휴식 (초)" })); root.appendChild(restIn);
+      root.appendChild(err);
+      root.appendChild(el("button", { class: "btn btn-primary btn-block rt-save", type: "button", onclick: async () => {
+        const rounds = Math.round(Number(roundsIn.value)), rest = Math.round(Number(restIn.value));
+        if (!(rounds >= 1) || !(rest >= 0)) { err.textContent = "반복은 1 이상, 휴식은 0초 이상으로 입력하세요."; err.hidden = false; return; }
+        try { t.groups = Object.assign({}, t.groups, { [b.id]: { ...b.meta, rounds, restSeconds: rest } }); await window.FitlogDB.DB.put("routineTemplates", t); await this.reloadDefs(); }
+        catch (e) { console.error(e); }
+        this._goRoutine("detail", { groupId: null });
+      } }, "저장"));
+      root.appendChild(el("button", { class: "btn btn-ghost btn-block danger-btn", style: "margin-top:10px", type: "button", onclick: async () => {
+        if (!window.confirm("연속 세트를 해제할까요? 운동과 각 운동의 설정은 루틴에 그대로 남아요.")) return;
+        try {
+          for (const g of b.guides) { delete g.groupId; await window.FitlogDB.DB.put("routineGuides", g); }
+          const groups = Object.assign({}, t.groups); delete groups[b.id]; t.groups = groups;
+          await window.FitlogDB.DB.put("routineTemplates", t);
+          await this.reloadDefs();
+        } catch (e) { console.error(e); }
+        this._goRoutine("detail", { groupId: null });
+        this.toast("연속 세트를 해제했어요");
+      } }, "연속 세트 해제"));
     },
     async renameRoutine(id) {
       const t = this.template(id); if (!t) return;
@@ -471,11 +582,15 @@
       const order = Math.max(0, ...this.templates.map((x) => x.order || 0)) + 1;
       const DB = window.FitlogDB.DB;
       try {
-        await DB.put("routineTemplates", { id: nid, name: `${t.name} 복사본`, order, active: true });
+        // 연속 세트는 새 그룹ID로 복사(원본 루틴과 그룹을 공유하지 않음)
+        const gmap = {}, groups = {};
+        Object.keys(t.groups || {}).forEach((k, j) => { gmap[k] = `grp-${Date.now()}-${j}`; groups[gmap[k]] = { ...t.groups[k] }; });
+        await DB.put("routineTemplates", { id: nid, name: `${t.name} 복사본`, order, active: true, ...(Object.keys(groups).length ? { groups } : {}) });
         const gs = this.guidesOf(id);
         for (let i = 0; i < gs.length; i++) {
           const copy = JSON.parse(JSON.stringify(gs[i]));
           copy.id = `g-${copy.exerciseId}-${Date.now()}-${i}`; copy.templateId = nid;
+          if (copy.groupId) { if (gmap[copy.groupId]) copy.groupId = gmap[copy.groupId]; else delete copy.groupId; }
           await DB.put("routineGuides", copy);
         }
         await this.reloadDefs();
@@ -507,18 +622,15 @@
     },
 
     // 운동 순서 변경: ☰ 손잡이를 Pointer Events로 끌기(iPhone 터치 포함) + ▲▼ 보조 버튼. 완료 시 한 번에 저장.
+    // 연속 세트는 한 덩어리로 움직인다(그룹 안 순서는 운동 편집의 ▲▼로).
     _routineReorder(root, m, t) {
-      const ids = (m.reorder || []).filter((id) => this.guidesOf(t.id).some((g) => g.id === id));
+      const blocks = this.routineBlocks(t.id), byKey = new Map(blocks.map((b) => [this._blockKey(b), b]));
+      const ids = (m.reorder || []).filter((k) => byKey.has(k));
+      blocks.forEach((b) => { if (!ids.includes(this._blockKey(b))) ids.push(this._blockKey(b)); });
       m.reorder = ids;
+      const label = (b) => b.type === "group" ? "연속 세트 · " + b.guides.map((g) => (this.exercise(g.exerciseId) || {}).name).join(" + ") : ((this.exercise(b.guide.exerciseId) || {}).name || b.guide.id);
       const done = async () => {
-        const DB = window.FitlogDB.DB;
-        try {
-          for (let i = 0; i < ids.length; i++) {
-            const g = this.guides.find((x) => x.id === ids[i]);
-            if (g && g.order !== i + 1) { g.order = i + 1; await DB.put("routineGuides", g); }
-          }
-          await this.reloadDefs();
-        } catch (e) { console.error("[Fitlog] 순서 저장 실패", e); }
+        await this.saveGuideOrder(ids.flatMap((k) => { const b = byKey.get(k); return b.type === "group" ? b.guides : [b.guide]; }));
         this._goRoutine("detail", { reorder: null });
       };
       root.appendChild(this._subHead("운동 순서 변경", () => this._goRoutine("detail", { reorder: null }),
@@ -528,11 +640,11 @@
       const paint = () => {
         list.textContent = "";
         ids.forEach((id, i) => {
-          const g = this.guides.find((x) => x.id === id), ex = g && this.exercise(g.exerciseId);
+          const b = byKey.get(id);
           const handle = el("span", { class: "ro-handle", "aria-hidden": "true" }, [icon(ICO.grip)]);
-          const row = el("div", { class: "gl-row ro-row", "data-id": id }, [
+          const row = el("div", { class: "gl-row ro-row" + (b.type === "group" ? " ro-group" : ""), "data-id": id }, [
             handle,
-            el("span", { class: "gl-main", text: ex ? ex.name : id }),
+            el("span", { class: "gl-main", text: label(b) }),
             el("button", { class: "ro-btn", type: "button", "aria-label": "위로", disabled: i === 0 ? "" : null, onclick: () => { [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]]; paint(); } }, [icon(ICO.up)]),
             el("button", { class: "ro-btn", type: "button", "aria-label": "아래로", disabled: i === ids.length - 1 ? "" : null, onclick: () => { [ids[i + 1], ids[i]] = [ids[i], ids[i + 1]]; paint(); } }, [icon(ICO.down)]),
           ]);
@@ -621,7 +733,7 @@
     _draftItemInfo(it) {
       if (it.catId) { const c = this.catalogById(it.catId); return { name: (c && c.label_ko) || it.catId, sub: c ? this.categoryLabel(c.category) + (c.equipment ? " · " + this._equipLabel(c.equipment) : "") : "" }; }
       if (it.exId) { const ex = this.exercise(it.exId); return { name: (ex && ex.name) || it.exId, sub: "내 운동" }; }
-      if (it.custom) return { name: it.custom.name, sub: it.custom.type === "cardio" ? "직접 만든 유산소" : "직접 만든 운동" };
+      if (it.custom) return { name: it.custom.name, sub: it.custom.type === "cardio" ? "직접 만든 유산소" : it.custom.measurementType === "duration" ? (it.custom.sides === "leftRight" ? "직접 만든 운동 · 시간 · 좌우 각각" : "직접 만든 운동 · 시간") : "직접 만든 운동" };
       return { name: "", sub: "" };
     },
     async saveNewRoutine(draft) {

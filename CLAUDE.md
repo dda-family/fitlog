@@ -126,6 +126,7 @@ fitlog/                     # 저장소 루트 = 앱 진입점 = GitHub Pages �
 ├── catalog-data.js heatmap.js
 ├── my-workout.js           # 내 운동 탭: 기록(주간·월간·기간) | 루틴(한 주간 루틴·내 루틴) (v33)
 ├── exercise-finder.js      # 운동 찾기 탭 + 공용 운동 상세(서비스 3D) + 루틴에 추가 (v33)
+├── workout-runner.js       # 시간형·좌우 운동·연속 세트: 측정 메타 해석, 오늘 수행 엔진, 관련 편집/기록 표시 (v35)
 ├── runtime/                # 3D 뷰어(Three.js). index.html 옆(루트)에 있어야 함
 │   ├── heatmap-3d.js  muscle-bindings.js  svg-fallback.js
 │   ├── exercise-preview-3d.js   # 운동 상세 3D 애니메이션(v25)

@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v34
-- CACHE_VERSION (service-worker.js): fitlog-v34
-- 다음 수정 시 둘 다 v35로 올릴 것
+- APP_VERSION (app.js): v35
+- CACHE_VERSION (service-worker.js): fitlog-v35
+- 다음 수정 시 둘 다 v36으로 올릴 것
 
 ---
 
@@ -60,6 +60,7 @@ git push
 - v32: Final Repair 12 + Batch C 유산소 6. 2.1 manifest 70, 시험 화면 74종(그룹 6개), 3D 후보 77. dumbbell_overhead_extension은 3D 보류(manifest·시험 목록 제외, 카탈로그·기록 유지). 3D 미지원 2(shrug·overhead extension), 편측 강조 미해결 2. 장비 회전(crank 360°, roller 다회전)은 의도된 것 — 키 축약 금지
 - v33: 정보구조 개편 — 하단 탭 오늘/내 운동/운동 찾기/AI 코치/설정. 내 운동 = 기록(주간·월간·기간 탐색) | 루틴(한 주간 루틴 = dayTemplateMap, 내 루틴 = 템플릿). 운동 추가 바텀시트 폐기 → 전체 화면 운동 찾기 → 공용 운동 상세. 새 파일 `my-workout.js`(내 운동), `exercise-finder.js`(운동 찾기·상세·3D 뷰어 정리). **사용자 요청으로 시제품 3D(74종)도 서비스 운동 상세에 같은 런타임으로 표시**("참고용 동작" 안내, 기술 옵션은 시험 화면에만). 스키마 변경 없음
 - v34: 기록 › 기간 › 직접 설정의 시작일/종료일을 세로 2행·전체 너비로(iOS date input 겹침 수정, CSS만)
+- v35: 시간형 운동·좌우 운동·연속 세트(`workout-runner.js`). 운동 측정 메타는 `FitlogCatalog.MEASUREMENT`(기존 `laterality`와 별개), 루틴 항목은 `measurementType`·`targetDurationSeconds`·`groupId`, 연속 세트는 `routineTemplates.groups`. 모두 선택 필드 — DB 버전·백업 형식 변경 없음. 상세는 DECISIONS v35
 
 ---
 

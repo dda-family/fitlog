@@ -814,3 +814,57 @@ button.gl-row:disabled { opacity: 1; }
 .app-toast { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40;
   max-width: calc(100vw - 32px); background: rgba(20,28,24,0.96); color: #eafff2; border: 1px solid var(--border); border-radius: 999px;
   padding: 10px 18px; font-size: 14px; font-weight: 600; pointer-events: none; animation: modal-fade 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===================================================================
+   시간형 운동 · 좌우 · 연속 세트 (v35)
+   =================================================================== */
+.dur-sets { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.dur-set { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.dur-set .set-no { min-width: 40px; }
+.dur-set .chk { color: var(--accent); }
+.run-panel { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.run-label { color: var(--text-dim); font-size: 15px; font-weight: 600; }
+.run-num { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.run-num.idle { font-size: 40px; color: var(--text-dim); }
+.run-num.big { font-size: clamp(76px, 26vw, 112px); }
+.run-panel.prep .run-num { color: var(--warn); }
+.run-panel.perform .run-num { color: var(--accent); }
+.run-panel .btn-lg { min-height: 60px; }
+.run-stop.danger-btn { background: transparent; }
+.run-stopped { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.run-reps { text-align: left; }
+.group-card .card-top .opt { color: var(--accent); }
+.grp-items { margin-top: 10px; display: flex; flex-direction: column; }
+.grp-item { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 8px 0; box-shadow: inset 0 -1px 0 var(--border); }
+.grp-item:last-child { box-shadow: none; }
+.grp-item.current .grp-name { color: var(--accent); }
+.grp-no { color: var(--text-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+.grp-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.grp-name { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grp-recs { font-size: 12.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grp-tgt { font-size: 14px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.group-card .memo-row { margin-top: 8px; }
+/* 루틴 편집 */
+.dur-input { display: flex; align-items: center; gap: 6px; }
+.dur-input input { min-width: 0; flex: 1 1 0; }
+.dur-input span { color: var(--text-faint); font-size: 13px; flex: 0 0 auto; }
+.gedit-note { color: var(--text-faint); font-size: 13px; padding: 12px 2px; }
+.rt-group { box-shadow: inset 3px 0 0 var(--accent-dim); }
+.gl-row + .rt-group, .rt-group + .gl-row, .rt-group + .rt-group { box-shadow: inset 3px 0 0 var(--accent-dim), inset 0 1px 0 var(--border); }
+.rt-group + .gl-row { box-shadow: inset 0 1px 0 var(--border); }
+.rt-group-head { display: flex; align-items: stretch; justify-content: space-between; min-height: 44px; }
+.rt-group-title { align-self: center; padding: 10px 14px 0; font-size: 13px; font-weight: 700; color: var(--accent); }
+.rt-group-head .ex-row-edit { box-shadow: none; }
+.rt-group .ex-row { box-shadow: none; }
+.rt-group-foot { padding: 4px 14px 12px; font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.rt-hint.warn { color: var(--warn); }
+.sel-row { gap: 14px; }
+.sel-box { width: 22px; height: 22px; border-radius: 6px; box-shadow: inset 0 0 0 2px var(--text-faint); flex: 0 0 auto; }
+.sel-row[aria-pressed="true"] .sel-box { box-shadow: inset 0 0 0 11px var(--accent); }
+.sel-row.disabled { opacity: 0.45; }
+.ro-group .gl-main { color: var(--accent); }
+/* 휴식 타이머 바(상단 고정)가 떠 있을 때 내 운동·운동 찾기의 상단 헤더가 그 아래로 오도록(뒤로·⋯가 가려지지 않게). 오늘 화면 배치는 그대로. */
+body:has(#timer-bar:not([hidden])) #view-my,
+body:has(#timer-bar:not([hidden])) #view-find { padding-top: 52px; }
+body:has(#timer-bar:not([hidden])) .sub-head,
+body:has(#timer-bar:not([hidden])) .fx-top { top: calc(env(safe-area-inset-top, 0px) + 50px); }

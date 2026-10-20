@@ -104,7 +104,7 @@
     })();
   </script>
 
-  <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app → my-workout → exercise-finder -->
+  <!-- 모듈 로드. 의존: db → evaluation → timer → backup → ai-bridge → app → my-workout → exercise-finder → workout-runner -->
   <script src="./db.js"></script>
   <script src="./evaluation.js"></script>
   <script src="./timer.js"></script>
@@ -116,6 +116,8 @@
   <!-- 내 운동(기록·루틴)·운동 찾기/상세: App 객체를 확장(app.js 다음에 로드, DOMContentLoaded 전) -->
   <script src="./my-workout.js"></script>
   <script src="./exercise-finder.js"></script>
+  <!-- 시간형·좌우 운동·연속 세트 수행(오늘) + 관련 편집/기록 표시 -->
+  <script src="./workout-runner.js"></script>
   <script>
     // Service Worker 등록 (배포 시 HTTPS 필요)
     if ("serviceWorker" in navigator) {

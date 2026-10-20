@@ -1,6 +1,11 @@
 /* ai-bridge.js — AI 코치 (DATA_SPEC §15~§17, PRODUCT_SPEC §13)
  * API 미호출. 프롬프트 텍스트 생성 + 사용자가 받아온 JSON 검증. (적용은 app.js)
  */
+// 시간형 세트 표시(초 → "45초"/"1분 30초", 좌우는 "좌 30초 · 우 27초")
+function fmtTimeSet(w) {
+  const f = (v) => { if (v == null) return "—"; const t = Math.round(Number(v)), m = Math.floor(t / 60), r = t % 60; return m ? (r ? `${m}분 ${r}초` : `${m}분`) : `${r}초`; };
+  return (w.leftSeconds !== undefined || w.rightSeconds !== undefined) ? `좌 ${f(w.leftSeconds)} · 우 ${f(w.rightSeconds)}` : f(w.durationSeconds);
+}
 const AiBridge = {
   // 분석용 프롬프트 텍스트 생성. ctx는 app.js에서 조립(기간 내 세션·세트 원본 포함).
   buildPrompt(ctx) {
@@ -48,7 +53,7 @@ const AiBridge = {
             s += `     가이드: ${r.guideText}\n`;
             if (r.warmSets && r.warmSets.length) s += `     워밍업: ${r.warmSets.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ")}\n`;
             if (r.workSets && r.workSets.length) {
-              s += `     실제 ${r.actualSetCount}세트: ${r.workSets.map((w, i) => `${i + 1}) ${w.weight == null ? "-" : w.weight}kg×${w.reps}회`).join("  ")}\n`;
+              s += `     실제 ${r.actualSetCount}세트: ${r.workSets.map((w, i) => `${i + 1}) ${w.timeText ? w.timeText : `${w.weight == null ? "-" : w.weight}kg×${w.reps}회`}`).join("  ")}\n`;
               if (r.targetSets != null && r.targetSets !== r.actualSetCount) s += `     (목표 세트 ${r.targetSets} → 실제 ${r.actualSetCount})\n`;
             } else {
               s += `     실제: 기록 없음\n`;
@@ -99,7 +104,7 @@ const AiBridge = {
       const gid = guideIdOf(r.exerciseId);
       s += `\n- ${gid || "(가이드없음)"} | ${exName(r.exerciseId)} [${r.status}]\n`;
       if (warm.length) s += `  워밍업: ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ")}\n`;
-      s += `  실제: ${work.length ? work.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ") : "—"}\n`;
+      s += `  실제: ${work.length ? work.map((w) => (w.durationSeconds !== undefined || w.leftSeconds !== undefined || w.rightSeconds !== undefined) ? fmtTimeSet(w) : `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ") : "—"}\n`;
       if (r.notes) s += `  메모: ${r.notes}\n`;
     });
     if (session.cardio) s += `\n[유산소] 경사 ${session.cardio.incline} · ${session.cardio.speedKmh}km/h · ${session.cardio.durationMinutes}분\n`;

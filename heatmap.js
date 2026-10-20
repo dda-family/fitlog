@@ -109,8 +109,14 @@
           exercises.push({ recordId, catalogId: effectiveCatalogId(r.exerciseId, exDef, userMap), exerciseType: "cardio", status: r.cardioActual ? "completed" : "not_started", durationSeconds: r.cardioActual ? (Number(r.cardioActual.durationMinutes) || 0) * 60 : 0 });
         } else {
           const work = (r.sets || []).filter((x) => x.setType === "work");
-          const sets = work.map((w, i) => ({ id: recordId + ":" + i, status: "completed", isWarmup: false, setFactor: 1, reps: Number(w.reps) || 0 }));
-          exercises.push({ recordId, catalogId: effectiveCatalogId(r.exerciseId, exDef, userMap), exerciseType: "strength", sets });
+          // 시간형 세트(v35): durationSeconds 또는 좌·우(leftSeconds/rightSeconds). 한쪽만 했으면 0.5세트(카탈로그 side_plank 규칙).
+          const sets = work.map((w, i) => {
+            const lr = w.leftSeconds !== undefined || w.rightSeconds !== undefined;
+            const L = Number(w.leftSeconds) || 0, R = Number(w.rightSeconds) || 0;
+            return { id: recordId + ":" + i, status: "completed", isWarmup: false, setFactor: lr && (!(L > 0) || !(R > 0)) ? 0.5 : 1,
+              reps: Number(w.reps) || 0, durationSeconds: lr ? L + R : (Number(w.durationSeconds) || 0) };
+          });
+          exercises.push({ recordId, catalogId: effectiveCatalogId(r.exerciseId, exDef, userMap), exerciseType: "strength", measure: r.measurementType === "duration" ? "duration" : "reps", sets });
         }
       });
       // 세션 고정 유산소(경사 걷기)

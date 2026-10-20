@@ -102,3 +102,16 @@ window.FitlogCatalog.EXERCISE_PREVIEWS = {
   dumbbell_curl: { src: "assets/exercises/dumbbell_curl.glb" },
   cable_curl: { src: "assets/exercises/cable_curl.glb" },
 };
+
+// 운동 측정 방식(가산적 메타데이터). 기존 CATALOG.laterality(bilateral_or_alternating/unilateral/cyclic)와는 별개 필드다.
+//   defaultMeasurementType: "reps" | "duration"  — 루틴에 넣을 때의 기본 기록 방식
+//   allowedMeasurementTypes: 루틴에서 고를 수 있는 기록 방식(2개 이상이면 루틴 편집에서 선택 가능)
+//   sides: "none" | "leftRight" — 시간형에서 좌·우를 각각 수행·기록하는지
+// 여기 없는 운동은 { reps, [reps], none } 으로 동작한다(기존 동작 그대로). Today 코드는 운동 ID가 아니라 이 값으로 분기한다.
+// 근거: plank·side_plank는 카탈로그상 supportsDuration=true·supportsReps=false인 정적 버티기(side_plank는 unilateral,
+// "좌우 홀드 한 라운드가 1세트"). wall sit·dead hang·hollow hold는 카탈로그에 없음. 그 외 운동은 reps 유지.
+window.FitlogCatalog.MEASUREMENT = {
+  plank: { defaultMeasurementType: "duration", allowedMeasurementTypes: ["duration"], sides: "none" },
+  side_plank: { defaultMeasurementType: "duration", allowedMeasurementTypes: ["duration"], sides: "leftRight" },
+  push_up: { defaultMeasurementType: "reps", allowedMeasurementTypes: ["reps", "duration"], sides: "none" },
+};

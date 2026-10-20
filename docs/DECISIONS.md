@@ -612,3 +612,16 @@ Merge(기존 데이터에 백업을 섞기)는 충돌 규칙이 복잡해 1인�
 - **운동 찾기 탭**: 독립 운동 라이브러리. 이름·별칭·부위·장비(한글)·주동근/보조근·동작 키워드 통합 검색 + 부위 필터(팔 = 이두+삼두). 목록에는 3D를 만들지 않는다.
 - **공용 운동 상세 3D (사용자 요청으로 D-결정 갱신)**: 정식 미리보기(컬 3종)는 `exercise-preview-3d.js`, 그 외 3D 자산이 있는 운동(기존 technical_prototype 74종)은 **같은 `exercise-prototype-3d.js` 런타임**으로 서비스 상세에도 표시한다(두 번째 로더 없음). 서비스 화면에는 재생/일시정지·드래그 회전·시점 초기화만, scrub·manifest·진단은 설정 › 개발자 · 시험에만. 시제품 자산은 "참고용 동작" 안내를 함께 표시. 상세당 뷰어 1개, 화면 이탈·재렌더·탭 전환 시 `_disposeExViewer()`로 destroy. 3D 없는 운동(shrug·overhead extension 등)은 안내 문구로 대체.
 - **데이터**: 스키마·IndexedDB 버전·백업 형식 변경 없음(마이그레이션 없음). 런타임 변경은 `resetView()` 추가뿐(가산적).
+
+## v35 (2026-10-20) — 시간형 운동 · 좌우 운동 · 연속 세트
+- **세 층 분리**: 운동(어떻게 측정 가능한가) / 루틴 항목(이번 목표) / 연속 세트(무엇을 쉬지 않고 이어 할지). Today 코드는 운동 ID가 아니라 이 메타로 분기한다.
+  - 운동: `FitlogCatalog.MEASUREMENT[catId] = { defaultMeasurementType, allowedMeasurementTypes, sides }` (기존 `CATALOG.laterality`와 이름 충돌을 피해 `sides: none|leftRight`). plank=duration/none, side_plank=duration/leftRight, push_up=reps(시간 선택 가능). 그 외 reps. 직접 만든 운동은 `exercise.measurementType`·`exercise.sides`.
+  - 루틴 항목(routineGuides): 선택 필드 `measurementType`(덮어쓰기), `targetDurationSeconds`(초), `groupId`.
+  - 연속 세트: `routineTemplates.groups[groupId] = { rounds, restSeconds }`. 구성원은 루틴 순서상 연속. 2개 미만이 되면 독립 운동으로 동작. 해제는 그룹 정보만 삭제(각 항목 설정 유지). 구성원의 원래 `targetSets`는 덮어쓰지 않고, 그룹 안에서는 rounds를 따른다.
+  - 기록(workoutSessions.exerciseResults): 시간형은 `measurementType:"duration"`, 좌우면 `sides:"leftRight"`, 세트는 `durationSeconds` 또는 `leftSeconds/rightSeconds`. 연속 세트 구성원은 `group:{id,rounds,restSeconds}`. 새 필드가 없으면 기존 reps로 해석.
+- **DB 버전·마이그레이션 없음.** 모두 선택 필드. 백업 형식(schemaVersion 2) 그대로.
+- **수행**: 준비 3초(`PREP_SECONDS` 상수, 휴식으로 기록 안 함, 삑 3번 + 시작음 — Web Audio, 외부 파일 없음) → 마감 시각 기준 카운트다운 → 끝나면 기존 "얏호~"(`FitlogTimer.playChime`) → 자동 완료. 좌우는 왼쪽 끝나도 휴식 없이 오른쪽 준비. 휴식은 독립 운동 세트 끝 / 연속 세트 한 바퀴의 마지막 단계 끝에서만 기존 휴식 타이머(`FitlogTimer.start`)로. 마지막 세트(바퀴) 뒤는 기존처럼 운동 간 휴식.
+  - 자동 전환에서 방금 "얏호~"가 울렸으면 준비의 첫 삑(3)은 겹치지 않게 생략.
+  - 중단 → [N초로 기록하고 계속] / [다시 시작] / [여기서 끝내기(그때까지 실제 시간 기록, 휴식 없음)].
+- 히트맵 어댑터: 시간형 세트에 `durationSeconds` 전달(plank는 카탈로그상 supportsReps=false라 이전엔 집계 제외), 좌우 중 한쪽만이면 0.5세트(카탈로그 side_plank 규칙). 히트맵 로딩·lifecycle 변경 없음.
+- 휴식 타이머 바가 떠 있을 때 내 운동·운동 찾기 상단 헤더가 가려지던 문제 수정(해당 화면만 아래로 오프셋).

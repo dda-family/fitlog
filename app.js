@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v34";
+const APP_VERSION = "v35";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -119,8 +119,9 @@ const App = {
     });
     const c = window.FitlogDB.SEED.cardioDefault;
     const sessionCardio = hasCardioGuide ? null : { type: c.type, incline: c.incline, speedKmh: c.speedKmh, durationMinutes: c.durationMinutes, done: false };
-    this.session = { templateId, results, extras: [], cardio: sessionCardio };
+    this.session = { templateId, results, extras: [], cardio: sessionCardio, groupProgress: {} };
     this.ended = false;
+    if (this._resetRun) this._resetRun();   // 시간형/연속 세트 수행 상태도 새 세션과 함께 초기화
   },
   newRes() { return { workSets: [], warmupSets: [], skipped: false, showExtra: false, notes: "" }; },
   newCardioRes(g) {
@@ -139,6 +140,7 @@ const App = {
           if (!r) continue;
           if (r.kind === "cardio") { if (r.cardioActual) { this.lastMap[g.exerciseId] = { cardio: r.cardioActual, date: s.date }; break; } continue; }
           const work = (r.sets || []).filter((x) => x.setType === "work");
+          if (r.measurementType === "duration") { if (work.length) { this.lastMap[g.exerciseId] = { durText: work.map((w) => this.fmtDurSet(w)).join(" / "), date: s.date }; break; } continue; }
           if (work.length) { this.lastMap[g.exerciseId] = { weight: work[0].weight, reps: work.map((w) => w.reps), date: s.date }; break; }
         }
       }
@@ -213,6 +215,7 @@ const App = {
           targetDurationMinutes: cd.durationMinutes, targetSpeedKmh: c.supportsSpeed ? cd.speedKmh : null, targetIncline: c.supportsIncline ? cd.incline : null, optional: false, notes: "" }
       : { id: "g-" + ex.id + "-" + Date.now(), templateId: tid, exerciseId: ex.id, order,
           targetWeight: null, targetSets: 3, minReps: 8, maxReps: 12, optional: false, warmupSuggestions: [], notes: "" };
+    if (!isCardio && this.catalogMeasureMeta(catId).allowed.includes("duration")) g.targetDurationSeconds = 30;   // 시간형 기본 목표(초)
     await window.FitlogDB.DB.put("routineGuides", g);
     await this.reloadDefs();
     return { ok: true, ex, g };
@@ -244,7 +247,8 @@ const App = {
     return t;
   },
   items() {
-    const seeded = this.guidesOf(this.session.templateId).map((g) => ({ guide: g, exercise: this.exercise(g.exerciseId), res: this.session.results[g.exerciseId], isExtra: false }));
+    const grp = this.groupRoundsByGuide ? this.groupRoundsByGuide(this.session.templateId) : {};
+    const seeded = this.guidesOf(this.session.templateId).map((g) => ({ guide: grp[g.id] ? { ...g, targetSets: grp[g.id].rounds } : g, exercise: this.exercise(g.exerciseId), res: this.session.results[g.exerciseId], isExtra: false }));
     return seeded.concat(this.session.extras.map((x) => ({ ...x, isExtra: true })));
   },
 
@@ -300,9 +304,9 @@ const App = {
     ]));
 
     if (this.ended) { this.renderSummary(root); return; }
-    this.items().forEach((it) => root.appendChild(this.renderCard(it)));
+    this.renderTodayItems(root);   // 독립 운동(횟수형/시간형) · 연속 세트 블록 단위
     if (this.session.cardio) root.appendChild(this.renderCardio());
-    root.appendChild(el("button", { class: "btn btn-block btn-ghost", style: "margin-top:4px", onclick: () => { this.ended = true; window.FitlogTimer.cancel(); this.renderToday(); window.scrollTo(0, 0); } }, "오늘 운동 종료"));
+    root.appendChild(el("button", { class: "btn btn-block btn-ghost", style: "margin-top:4px", onclick: () => { this.ended = true; this._resetRun(); window.FitlogTimer.cancel(); this.renderToday(); window.scrollTo(0, 0); } }, "오늘 운동 종료"));
   },
 
   renderCard(it) {
@@ -577,6 +581,7 @@ const App = {
   // ---------------- 판정 ----------------
   evalExercise(guide, ex, res) {
     if (this.isCardio(ex, guide, res)) return { status: res.done ? "completed" : "not_started", direction: null };
+    if (this.isDurationItem(guide, ex)) return this.evalDuration(guide.targetSets, this.targetDur(guide), res.workSets, res.skipped);
     const judge = res.workSets.slice(0, guide.targetSets).map((s) => ({ setType: "work", reps: s.reps, completed: true }));
     return window.FitlogEval.evaluateExercise({ targetSets: guide.targetSets, minReps: guide.minReps, maxReps: guide.maxReps, sideMode: ex.sideMode, targetWeight: guide.targetWeight }, judge, { skipped: res.skipped });
   },
@@ -589,6 +594,7 @@ const App = {
   statusLabel(st) { return { completed: "완료", progression_candidate: "증량 후보", volume_under: "볼륨 부족", skipped: "미실시", not_started: "미시작" }[st] || st; },
   guideLine(ex, g, isExtra) {
     if (this.isCardio(ex, g)) return this.cardioGuideLine(g);
+    if (!isExtra && this.isDurationItem(g, ex)) return `목표  ${this.durTargetText(g, ex)} · ${g.targetSets}세트`;
     if (isExtra) return `직접 추가 · kg · ${g.targetSets}세트 (목표 자유)`;
     const w = g.targetWeight == null ? "중량 미정" : this.weightText(ex, g.targetWeight);
     return `가이드  ${w} · ${g.minReps}~${g.maxReps}회 · ${g.targetSets}세트`;
@@ -692,8 +698,22 @@ const App = {
 
   buildSession() {
     const d = this.sessionDate;
+    const grp = this.groupRoundsByGuide(this.session.templateId);
     const exerciseResults = this.items().map((it) => {
       const { guide: g, exercise: ex, res } = it;
+      const group = !it.isExtra && grp[g.id] ? { group: grp[g.id] } : {};
+      if (!it.isExtra && this.isDurationItem(g, ex)) {
+        const lr = this.itemSides(g, ex) === "leftRight";
+        return {
+          exerciseId: ex.id, exerciseName: ex.name || null, sideMode: ex.sideMode, adhoc: false,
+          measurementType: "duration", ...(lr ? { sides: "leftRight" } : {}),
+          guideSnapshot: { measurementType: "duration", targetDurationSeconds: this.targetDur(g), targetSets: g.targetSets },
+          sets: res.workSets.map((s, i) => lr
+            ? { setNumber: i + 1, setType: "work", leftSeconds: s.leftSeconds, rightSeconds: s.rightSeconds, completed: true }
+            : { setNumber: i + 1, setType: "work", durationSeconds: s.durationSeconds, completed: true }),
+          status: this.evalExercise(g, ex, res).status, skipReason: null, notes: res.notes || "", ...group,
+        };
+      }
       if (this.isCardio(ex, g, res)) {
         return {
           exerciseId: ex.id, exerciseName: ex.name || null, kind: "cardio", adhoc: !!it.isExtra,
@@ -710,7 +730,7 @@ const App = {
           ...res.warmupSets.map((s) => ({ setNumber: 0, setType: "warmup", weight: s.weight, reps: s.reps, completed: true })),
           ...res.workSets.map((s, i) => ({ setNumber: i + 1, setType: "work", weight: s.weight, reps: s.reps, completed: true })),
         ],
-        status: this.evalExercise(g, ex, res).status, skipReason: null, notes: res.notes || "",
+        status: this.evalExercise(g, ex, res).status, skipReason: null, notes: res.notes || "", ...group,
       };
     });
     const c = this.session.cardio;
@@ -1071,6 +1091,7 @@ const App = {
   },
   recomputeStatus(r) {
     const gs = r.guideSnapshot || {};
+    if (r.measurementType === "duration") return r.status === "skipped" ? "skipped" : this.evalDuration(gs.targetSets || 0, gs.targetDurationSeconds || 0, (r.sets || []).filter((x) => x.setType === "work"), false).status;
     const ex = this.exercise(r.exerciseId);
     const judge = (r.sets || []).filter((x) => x.setType === "work").slice(0, gs.targetSets || 99).map((x) => ({ setType: "work", reps: x.reps, completed: true }));
     if (r.status === "skipped") return "skipped";
@@ -1125,6 +1146,7 @@ const App = {
         return;
       }
 
+      if (r.measurementType === "duration") { root.appendChild(this._histDurationCard(s, r, id, nm)); return; }
       const work = (r.sets || []).filter((x) => x.setType === "work");
       const warm = (r.sets || []).filter((x) => x.setType === "warmup");
       const card = el("div", { class: "card" });
@@ -1153,7 +1175,7 @@ const App = {
           el("button", { class: "btn btn-ghost", onclick: () => { this.histEditEx = null; this.renderHistoryDetail(id); } }, "취소"),
         ]));
       } else {
-        card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name", text: nm }), el("span", { class: `badge ${r.status}`, text: this.statusLabel(r.status) })]));
+        card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name" }, [document.createTextNode(nm), r.group ? el("span", { class: "opt", text: "연속 세트" }) : null]), el("span", { class: `badge ${r.status}`, text: this.statusLabel(r.status) })]));
         if (gs.targetWeight != null) card.appendChild(el("div", { class: "guide-line", text: `가이드 ${gs.targetWeight}kg · ${gs.minReps}~${gs.maxReps} × ${gs.targetSets}` }));
         if (warm.length) card.appendChild(el("div", { class: "last-line", text: `워밍업 ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(" / ")}` }));
         card.appendChild(el("div", { class: "guide-line", text: `실제 ${this.fmtActual(work)}` }));
@@ -1417,6 +1439,7 @@ const App = {
   },
   renderGuideEditor(g, ex, idx, total) {
     if (this.isCardio(ex, g)) return this.renderCardioGuideEditor(g, ex, idx, total);
+    if (this.isDurationItem(g, ex)) return this.renderDurationGuideEditor(g, ex, idx, total);
     const wInput = el("input", { type: "number", inputmode: "decimal", value: g.targetWeight == null ? "" : g.targetWeight, placeholder: "미정" });
     const setsInput = el("input", { type: "number", inputmode: "numeric", value: g.targetSets });
     const minInput = el("input", { type: "number", inputmode: "numeric", value: g.minReps });
@@ -1444,13 +1467,7 @@ const App = {
       this.editingGuideId = null; this.renderGuide();
     };
     const promote = async () => { try { const w = await window.FitlogDB.DB.lastUsedWeight(g.exerciseId); if (w != null) wInput.value = w; } catch (_) {} };
-    const move = async (dir) => {
-      const list = this.guidesOf(this.guideEditTemplateId);
-      const j = idx + dir; if (j < 0 || j >= list.length) return;
-      const other = list[j]; const a = g.order; g.order = other.order; other.order = a;
-      try { await window.FitlogDB.DB.put("routineGuides", g); await window.FitlogDB.DB.put("routineGuides", other); await this.reloadDefs(); } catch (e) { console.error(e); }
-      this.renderGuide();
-    };
+    const move = (dir) => this.moveGuide(g, dir);   // 연속 세트 구조를 지키는 블록 단위 이동
     const del = async () => {
       if (!window.confirm(`'${ex.name}'을(를) 이 루틴에서 제거할까요? (기존 기록은 그대로 남아요)`)) return;
       try { await window.FitlogDB.DB.delete("routineGuides", g.id); await this.reloadDefs(); } catch (e) { console.error(e); }
@@ -1460,9 +1477,10 @@ const App = {
     return el("div", { class: "card gedit" }, [
       el("div", { class: "card-top" }, [el("div", { class: "ex-name", text: ex.name }),
         el("div", { class: "order-btns" }, [
-          el("button", { class: "btn btn-sm", onclick: () => move(-1), ...(idx === 0 ? { disabled: "disabled" } : {}) }, "▲"),
-          el("button", { class: "btn btn-sm", onclick: () => move(1), ...(idx === total - 1 ? { disabled: "disabled" } : {}) }, "▼"),
+          el("button", { class: "btn btn-sm", onclick: () => move(-1), ...(this.canMoveGuide(g, -1) ? {} : { disabled: "disabled" }) }, "▲"),
+          el("button", { class: "btn btn-sm", onclick: () => move(1), ...(this.canMoveGuide(g, 1) ? {} : { disabled: "disabled" }) }, "▼"),
         ])]),
+      this._measureSwitch(g, ex),
       el("div", { class: "gedit-grid" }, [
         field("중량", el("div", { class: "with-btn" }, [wInput, el("button", { class: "btn btn-sm btn-ghost", onclick: promote }, "지난값")])),
         field("목표 세트", setsInput), field("최소 반복", minInput), field("최대 반복", maxInput),
@@ -1566,13 +1584,7 @@ const App = {
     const notesInput = el("input", { type: "text", value: g.notes || "", placeholder: "메모" });
     const optChk = el("input", { type: "checkbox", ...(g.optional ? { checked: "checked" } : {}) });
     const field = (label, node) => el("div", { class: "gedit-field" }, [el("label", { text: label }), node]);
-    const move = async (dir) => {
-      const list = this.guidesOf(this.guideEditTemplateId);
-      const j = idx + dir; if (j < 0 || j >= list.length) return;
-      const other = list[j]; const a = g.order; g.order = other.order; other.order = a;
-      try { await window.FitlogDB.DB.put("routineGuides", g); await window.FitlogDB.DB.put("routineGuides", other); await this.reloadDefs(); } catch (e) { console.error(e); }
-      this.renderGuide();
-    };
+    const move = (dir) => this.moveGuide(g, dir);   // 연속 세트 구조를 지키는 블록 단위 이동
     const save = async () => {
       g.targetDurationMinutes = Number(draft.targetDurationMinutes) || 0;
       g.targetSpeedKmh = Number(draft.targetSpeedKmh) || 0;
@@ -1590,8 +1602,8 @@ const App = {
       el("div", { class: "card-top" }, [
         el("div", { class: "ex-name" }, [document.createTextNode(ex.name), el("span", { class: "opt", text: "유산소" })]),
         el("div", { class: "order-btns" }, [
-          el("button", { class: "btn btn-sm", onclick: () => move(-1), ...(idx === 0 ? { disabled: "disabled" } : {}) }, "▲"),
-          el("button", { class: "btn btn-sm", onclick: () => move(1), ...(idx === total - 1 ? { disabled: "disabled" } : {}) }, "▼"),
+          el("button", { class: "btn btn-sm", onclick: () => move(-1), ...(this.canMoveGuide(g, -1) ? {} : { disabled: "disabled" }) }, "▲"),
+          el("button", { class: "btn btn-sm", onclick: () => move(1), ...(this.canMoveGuide(g, 1) ? {} : { disabled: "disabled" }) }, "▼"),
         ])]),
       (() => {
         const spec = this.cardioFieldSpec(ex);
@@ -1685,6 +1697,11 @@ const App = {
         }
         const work = (r.sets || []).filter((x) => x.setType === "work");
         const warm = (r.sets || []).filter((x) => x.setType === "warmup");
+        if (r.measurementType === "duration") {
+          return { name, kind: "strength", status: r.status, notes: r.notes || "",
+            guideText: `${r.sides === "leftRight" ? "좌·우 각 " : ""}${this.fmtDur(gs.targetDurationSeconds)} / ${gs.targetSets}세트`, targetSets: gs.targetSets,
+            workSets: work.map((w) => ({ timeText: this.fmtDurSet(w) })), warmSets: [], actualSetCount: work.length };
+        }
         return { name, kind: "strength", status: r.status, notes: r.notes || "",
           guideText: `${gs.targetWeight == null ? "미정" : gs.targetWeight + "kg"} / ${gs.minReps}~${gs.maxReps}회 / ${gs.targetSets}세트`,
           targetSets: gs.targetSets,

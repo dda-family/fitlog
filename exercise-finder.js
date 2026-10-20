@@ -93,12 +93,13 @@
             targetDurationMinutes: cd.durationMinutes, targetSpeedKmh: spec.speed ? cd.speedKmh : null, targetIncline: spec.incline ? cd.incline : null, optional: false, notes: "" }
         : { id: "g-" + ex.id + "-" + Date.now(), templateId: tid, exerciseId: ex.id, order,
             targetWeight: null, targetSets: 3, minReps: 8, maxReps: 12, optional: false, warmupSuggestions: [], notes: "" };
+      if (!this.isCardio(ex) && this.exMeasureMeta(ex).allowed.includes("duration")) g.targetDurationSeconds = 30;
       await window.FitlogDB.DB.put("routineGuides", g);
       await this.reloadDefs();
       return { ok: true, ex, g };
     },
     // 직접 만든 운동(카탈로그에 없음) — 기존 '직접 운동 만들기'와 같은 데이터 형태
-    async createCustomExerciseInRoutine(tid, { name, type, desc }) {
+    async createCustomExerciseInRoutine(tid, { name, type, desc, measurementType, sides }) {
       let exId = "ex-" + Date.now();
       for (let i = 2; this.exercise(exId); i++) exId = "ex-" + Date.now() + "-" + i;   // 새 루틴 저장 시 연속 생성 충돌 방지
       const order = Math.max(0, ...this.guidesOf(tid).map((g) => g.order)) + 1;
@@ -110,6 +111,11 @@
       } else {
         ex = { id: exId, name, category: "custom", unit: "kg", sideMode: "total", warmupEnabled: false, active: true };
         g = { id: "g-" + exId, templateId: tid, exerciseId: exId, order, targetWeight: null, targetSets: 3, minReps: 8, maxReps: 12, optional: false, warmupSuggestions: [], notes: "" };
+        // 기록 방식(선택 필드): 시간형이면 운동 자체에 저장, 루틴 항목엔 목표 시간
+        if (measurementType === "duration") {
+          ex.measurementType = "duration"; ex.sides = sides === "leftRight" ? "leftRight" : "none";
+          g.targetDurationSeconds = 30;
+        }
       }
       if (desc) ex.description = desc;
       await window.FitlogDB.DB.put("exercises", ex);
@@ -233,6 +239,8 @@
         if (Object.keys(m.secondary || {}).length) sec("보조근", lbl(m.secondary));
       } else sec("근육", "근육 정보가 아직 없어요.");
       // 설명: 데이터에 있는 것만 표시(없는 내용을 지어내지 않음). howTo/cautions는 데이터가 생기면 자동 표시.
+      const mm = ex ? this.exMeasureMeta(ex) : this.catalogMeasureMeta(catId);
+      if (!cardio && mm.defaultType === "duration") sec("기본 기록 방식", mm.sides === "leftRight" ? "시간 · 좌우 각각 수행" : "시간");
       const txt = (v) => Array.isArray(v) ? v.join("\n") : v;
       if (c && c.howTo) sec("운동 방법", txt(c.howTo));
       if (c && c.cautions) sec("주의사항", txt(c.cautions));
@@ -360,6 +368,21 @@
       const setType = (t) => { type = t; tS.classList.toggle("on", t === "strength"); tC.classList.toggle("on", t === "cardio"); };
       tS.onclick = () => setType("strength"); tC.onclick = () => setType("cardio");
       root.appendChild(el("label", { class: "field-label", text: "운동 유형" })); root.appendChild(el("div", { class: "fx-chips static" }, [tS, tC]));
+      // 근력 운동의 기록 방식 · 좌우 구분(좌우 각각은 시간 기록에서 쓴다)
+      let measure = "reps", sides = "none";
+      const mR = el("button", { class: "fx-chip on", type: "button" }, "반복 횟수"), mD = el("button", { class: "fx-chip", type: "button" }, "시간");
+      const sN = el("button", { class: "fx-chip on", type: "button" }, "없음"), sLR = el("button", { class: "fx-chip", type: "button" }, "좌우 각각 수행");
+      const sideWrap = el("div", { hidden: true }, [el("label", { class: "field-label", text: "좌우 구분" }), el("div", { class: "fx-chips static" }, [sN, sLR])]);
+      const paintM = () => {
+        mR.classList.toggle("on", measure === "reps"); mD.classList.toggle("on", measure === "duration");
+        sN.classList.toggle("on", sides === "none"); sLR.classList.toggle("on", sides === "leftRight");
+        measureWrap.hidden = type !== "strength"; sideWrap.hidden = type !== "strength" || measure !== "duration";
+      };
+      mR.onclick = () => { measure = "reps"; sides = "none"; paintM(); }; mD.onclick = () => { measure = "duration"; paintM(); };
+      sN.onclick = () => { sides = "none"; paintM(); }; sLR.onclick = () => { sides = "leftRight"; paintM(); };
+      const measureWrap = el("div", {}, [el("label", { class: "field-label", text: "기록 방식" }), el("div", { class: "fx-chips static" }, [mR, mD])]);
+      tS.addEventListener("click", paintM); tC.addEventListener("click", paintM);
+      root.appendChild(measureWrap); root.appendChild(sideWrap);
       const descIn = el("textarea", { class: "text-input text-area", placeholder: "동작 설명 (선택) — 나중에 AI 근육 매핑에 활용돼요", rows: "2" });
       root.appendChild(el("label", { class: "field-label", text: "동작 설명 (선택)" })); root.appendChild(descIn);
       const sim = el("div", { class: "fx-sim" }); root.appendChild(sim);
@@ -383,7 +406,7 @@
       btn.addEventListener("click", async () => {
         const name = nameIn.value.trim();
         if (!name) { err.textContent = "운동 이름을 입력하세요."; err.hidden = false; return; }
-        const custom = { name, type, desc: descIn.value.trim() };
+        const custom = { name, type, desc: descIn.value.trim(), ...(type === "strength" && measure === "duration" ? { measurementType: "duration", sides } : {}) };
         btn.disabled = true;
         if (ctx.target.draft) ctx.target.draft.items.push({ custom });
         else {
