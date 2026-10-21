@@ -10,7 +10,8 @@
  */
 (function () {
   const App = window.FitlogApp;
-  const PREP_SECONDS = 3;          // 시간형 시작 전 준비(자세 전환) 시간 — 이 상수 한 곳에서 바꾼다. 휴식으로 기록하지 않는다.
+  const PREP_SECONDS = 5;          // 시간형 시작 전 준비(자세 전환) 시간 — 이 상수 한 곳에서 바꾼다. 휴식으로 기록하지 않는다.
+  const BEEP_FROM = 3;             // 준비 마지막 3·2·1초에만 삑(앞부분은 조용히 자세 잡기 · "얏호~"와도 겹치지 않음)
   const DEFAULT_DURATION = 30;     // 목표 시간이 없을 때 기본값(초)
   const TICK_MS = 100;
 
@@ -305,7 +306,7 @@
       const r = this.run, st = r.steps[r.idx];
       if (st.kind === "duration") {
         Object.assign(r, { phase: "preparing", prepEndsAt: t + PREP_SECONDS * 1000, startedAt: null, endsAt: null, elapsed: 0,
-          lastBeep: afterChime ? PREP_SECONDS : null });   // 방금 "얏호~"가 울렸으면 첫 삑은 겹치지 않게 생략
+          lastBeep: null });
         this._ensureTicker();
         if (!this._inTick) this._tick();   // 따라잡기 루프 안에서는 바깥 루프가 이어서 처리(중복 소리 방지)
       } else { r.phase = "reps"; this._stopTicker(); }
@@ -323,7 +324,7 @@
             changed = true; continue;
           }
           const s = Math.ceil((r.prepEndsAt - now) / 1000);
-          if (s !== r.lastBeep) { if (r.lastBeep === null || s < r.lastBeep) this._tone("beep"); r.lastBeep = s; }
+          if (s !== r.lastBeep) { if (s <= BEEP_FROM && (r.lastBeep === null || s < r.lastBeep)) this._tone("beep"); r.lastBeep = s; }
           break;
         }
         if (r.phase === "performing" && now >= r.endsAt) {
