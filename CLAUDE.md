@@ -119,6 +119,7 @@ fitlog/                     # 저장소 루트 = 앱 진입점 = GitHub Pages �
 ├── styles.css
 ├── app.js                  # 앱 부트스트랩, 라우팅(탭), 오늘/기록 화면
 ├── db.js                   # IndexedDB 래퍼, 스토어 정의, 시드
+├── sound.js                # 효과음 단일 경로(HTML audio)·소리 목록 — docs/SOUND_DESIGN.md (v37)
 ├── timer.js                # endsAt 기반 타이머 + 화면 유지 + 알림음
 ├── evaluation.js           # 세트/운동 판정, 완료율
 ├── backup.js               # JSON export/import

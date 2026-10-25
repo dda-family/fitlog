@@ -5,13 +5,14 @@
  *   연속 세트(routineGuides.groupId + routineTemplates.groups[id] = {rounds, restSeconds}) = 무엇을 쉬지 않고 이어 할 것인가
  * 모든 새 필드는 선택(optional)이다. 없으면 reps / 좌우 없음 / 독립 운동으로 동작한다(기존 데이터 그대로).
  * 수행 타이머는 휴식 타이머와 같은 방식(절대 시각 기준: 남은 시간 = 마감 - Date.now())이고, 끝나면
- * 기존 휴식 타이머(FitlogTimer.start)와 기존 "얏호~"(FitlogTimer.playChime)를 그대로 쓴다.
+ * 기존 휴식 타이머(FitlogTimer.start)를 그대로 쓴다. 효과음은 sound.js(docs/SOUND_DESIGN.md) — 휴식 끝 "얏호~"는 휴식 타이머가 낸다.
  * 의존: app.js, my-workout.js — 그 다음에 로드
  */
 (function () {
   const App = window.FitlogApp;
   const PREP_SECONDS = 5;          // 시간형 시작 전 준비(자세 전환) 시간 — 이 상수 한 곳에서 바꾼다. 휴식으로 기록하지 않는다.
-  const BEEP_FROM = 3;             // 준비 마지막 3·2·1초에만 삑(앞부분은 조용히 자세 잡기 · "얏호~"와도 겹치지 않음)
+  const BEEP_FROM = 3;
+  const END_TICK_FROM = 5;         // 버티기 끝나기 5·4·3·2·1초 전 "똑"(휴식 끝 카운트다운도 timer.js에서 같은 규칙)             // 준비 마지막 3·2·1초에만 삑(앞부분은 조용히 자세 잡기 · "얏호~"와도 겹치지 않음)
   const DEFAULT_DURATION = 30;     // 목표 시간이 없을 때 기본값(초)
   const TICK_MS = 100;
 
@@ -264,34 +265,16 @@
       else { const g = this.guidesOf(tid).find((x) => x.exerciseId === key.slice(2)); if (g) add(g); }
       return steps;
     },
-    _audioInit() {
-      try {
-        const C = window.AudioContext || window.webkitAudioContext;
-        if (!this._actx && C) this._actx = new C();
-        if (this._actx && this._actx.state === "suspended") this._actx.resume().catch(() => {});
-      } catch (_) {}
-    },
-    // 준비 카운트다운 소리(Web Audio, 외부 파일 없음): 삑(880Hz 짧게) ×3, 시작 "땡~"(1319Hz 길게 감쇠)
-    _tone(kind) {
-      if (this.settings && this.settings.soundEnabled === false) return;
-      const c = this._actx; if (!c) return;
-      try {
-        if (c.state === "suspended") c.resume().catch(() => {});
-        const t = c.currentTime, o = c.createOscillator(), gn = c.createGain();
-        const start = kind === "start", dur = start ? 0.7 : 0.12;
-        o.type = "sine"; o.frequency.value = start ? 1318.5 : 880;
-        gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(start ? 0.45 : 0.35, t + 0.012); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(gn); gn.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
-        this._toneCount = (this._toneCount || 0) + 1;
-      } catch (_) {}
-    },
+    // 효과음은 sound.js 한 경로로(docs/SOUND_DESIGN.md): prep·go·tick·step·set. 휴식 끝 "얏호~"는 기존 휴식 타이머가 낸다.
+    _sfx(k) { if (window.FitlogSound) window.FitlogSound.play(k); },
+    _unlockSound() { if (window.FitlogSound) window.FitlogSound.unlock(); },
     _ensureTicker() { if (!this._runTicker) this._runTicker = setInterval(() => this._tick(), TICK_MS); },
     _stopTicker() { if (this._runTicker) { clearInterval(this._runTicker); this._runTicker = null; } },
     _resetRun() { this.run = null; this._stopTicker(); },
     _renderRun() { if (this.view === "today" && !this.ended) this.renderToday(); },
 
-    startRun(key) {   // 사용자 탭(제스처)에서만 호출 → 여기서 Web Audio 언락
-      this._audioInit();
+    startRun(key) {   // 사용자 탭(제스처)에서만 호출 → 효과음 언락
+      this._unlockSound();
       const steps = this._runSteps(key);
       if (!steps.length) return;
       window.FitlogTimer.cancel(); this.activeTimerExerciseId = null;   // 쉬는 중 시작하면 휴식 종료
@@ -313,29 +296,36 @@
     },
     _tick() {
       const r = this.run; if (!r) { this._stopTicker(); return; }
-      const now = Date.now(); let changed = false, chime = false;
+      const now = Date.now(); let changed = false, endCue = null;
       this._inTick = true;
       try {
       for (let guard = 0; guard < 64 && r === this.run; guard++) {
         if (r.phase === "preparing") {
           if (now >= r.prepEndsAt) {
-            if (now - r.prepEndsAt < 1500) this._tone("start");   // 늦게 따라잡은 경우엔 시작음 생략
-            r.phase = "performing"; r.startedAt = r.prepEndsAt; r.endsAt = r.startedAt + r.steps[r.idx].target * 1000;
+            if (now - r.prepEndsAt < 1500) this._sfx("go");   // 늦게 따라잡은 경우엔 시작음 생략
+            r.phase = "performing"; r.startedAt = r.prepEndsAt; r.endsAt = r.startedAt + r.steps[r.idx].target * 1000; r.lastTick = null;
             changed = true; continue;
           }
           const s = Math.ceil((r.prepEndsAt - now) / 1000);
-          if (s !== r.lastBeep) { if (s <= BEEP_FROM && (r.lastBeep === null || s < r.lastBeep)) this._tone("beep"); r.lastBeep = s; }
+          if (s !== r.lastBeep) { if (s <= BEEP_FROM && (r.lastBeep === null || s < r.lastBeep)) this._sfx("prep"); r.lastBeep = s; }
           break;
         }
         if (r.phase === "performing" && now >= r.endsAt) {
-          chime = true; changed = true;
+          changed = true;
           this._completeStep(r.steps[r.idx].target, r.endsAt, true);
+          endCue = this.run === r ? "step" : "set";   // 다음 동작이 이어지면 띵, 세트(바퀴)가 끝났으면 딩-동
           continue;
+        }
+        if (r.phase === "performing") {
+          // 버티기 끝나기 5·4·3·2·1초 전 "똑"(시작 후 2초 이내는 생략, 같은 초는 한 번만)
+          const s = Math.ceil((r.endsAt - now) / 1000);
+          if (s <= END_TICK_FROM && s >= 1 && s !== r.lastTick && (r.lastTick === null || s < r.lastTick) && r.steps[r.idx].target - s >= 2) this._sfx("tick");
+          if (s <= END_TICK_FROM) r.lastTick = s;
         }
         break;
       }
       } finally { this._inTick = false; }
-      if (chime) window.FitlogTimer.playChime();   // 기존 "얏호~" 재사용(따라잡기로 여러 단계가 끝나도 한 번만)
+      if (endCue) this._sfx(endCue);   // 따라잡기로 여러 단계가 끝나도 마지막 의미의 소리 한 번만
       if (changed) this._renderRun(); else this._paintRun(now);
     },
     _paintRun(now) {
@@ -384,7 +374,7 @@
         const g = this._guideOf(r.key.slice(2)), done = this.session.results[r.key.slice(2)].workSets.length;
         if (g && done === g.targetSets) { type = "exercise_rest"; sec = this.settings.exerciseRestSeconds; }
       }
-      if (withRest) { this.activeTimerExerciseId = r.key; window.FitlogTimer.start(type, sec); }
+      if (withRest && sec > 0) { this.activeTimerExerciseId = r.key; window.FitlogTimer.start(type, sec); }   // 휴식 0초면 타이머 없음(딩-동·얏호 겹침 방지)
     },
     stopRun() {
       const r = this.run; if (!r) return;
@@ -400,13 +390,13 @@
     },
     runRecordContinue() {   // A. 실제 수행 시간으로 기록하고 다음 단계로
       const r = this.run; if (!r || r.phase !== "stopped") return;
-      this._audioInit();
+      this._unlockSound();
       this._completeStep(r.elapsed, Date.now(), false);
       this._renderRun();
     },
     runRetry() {            // B. 같은 단계(같은 쪽) 다시
       const r = this.run; if (!r || r.phase !== "stopped") return;
-      this._audioInit();
+      this._unlockSound();
       this._enterStep(Date.now(), false);
       this._renderRun();
     },
@@ -418,7 +408,7 @@
     },
     runRepsDone() {         // 연속 세트 안의 횟수형 단계 완료 → 다음 단계(휴식 없음)
       const r = this.run; if (!r || r.phase !== "reps") return;
-      this._audioInit();
+      this._unlockSound();
       const st = r.steps[r.idx], res = this.session.results[st.exId], d = res.runDraft || {};
       res.workSets.push({ weight: d.weight == null || d.weight === "" ? null : Number(d.weight), reps: Number(d.reps) || 0 });
       res.runDraft = null; r.recorded = true;
@@ -564,6 +554,6 @@
 
   // 앱 복귀 시 수행 타이머 즉시 재계산(절대 시각 기준이라 경과 시간이 그대로 반영됨)
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && App.run) { App._audioInit && App._actx && App._actx.state === "suspended" && App._actx.resume().catch(() => {}); App._tick(); }
+    if (document.visibilityState === "visible" && App.run) App._tick();
   });
 })();

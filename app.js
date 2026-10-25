@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v36";
+const APP_VERSION = "v37";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1629,6 +1629,15 @@ const App = {
     root.appendChild(el("div", { class: "settings-group" }, [this.settingRow("세트 사이 휴식", "초", "setRestSeconds"), this.settingRow("운동 사이 휴식", "초", "exerciseRestSeconds")]));
     root.appendChild(el("div", { class: "section-label", text: "알림" }));
     root.appendChild(el("div", { class: "settings-group" }, [el("div", { class: "settings-row" }, [el("div", {}, [el("div", { class: "k", text: "알림 사운드 테스트" }), el("div", { class: "sub", text: "운동 전 한 번 눌러 소리를 켜두세요" })]), el("button", { class: "btn btn-sm", onclick: () => window.FitlogTimer.testSound() }, "🎧 테스트")])]));
+    // 소리 미리 듣기(docs/SOUND_DESIGN.md): 소리마다 뜻이 하나 — 실기기 음량·구분 확인용
+    const cues = (window.FitlogSound && window.FitlogSound.CUES) || {};
+    root.appendChild(el("div", { class: "settings-group sound-list" }, [
+      el("div", { class: "settings-row" }, [el("div", {}, [el("div", { class: "k", text: "소리 미리 듣기" }), el("div", { class: "sub", text: "운동 중 나는 소리를 하나씩 들어볼 수 있어요" })])]),
+      ...Object.keys(cues).map((k) => el("div", { class: "settings-row" }, [
+        el("div", { class: "k", text: cues[k].label }),
+        el("button", { class: "btn btn-sm btn-ghost", "aria-label": cues[k].label + " 듣기", onclick: () => { window.FitlogSound.unlock(); window.FitlogSound.play(k); } }, "▶"),
+      ])),
+    ]));
     root.appendChild(el("div", { class: "section-label", text: "데이터" }));
     const fileInput = el("input", { type: "file", accept: "application/json,.json", style: "display:none",
       onchange: async (e) => {

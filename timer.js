@@ -18,18 +18,17 @@ const RestTimer = {
     };
   },
 
-  // 최초 사용자 제스처에서 호출 (알림 테스트 / 운동 시작). 오디오+video 언락 + 화면 유지 시작.
+  // 사용자 제스처에서 호출 (알림 테스트 / 운동 시작). 효과음 언락은 sound.js 한 곳에서(동기·중복 없이), 여기선 화면 유지 시작.
+  // v37: 예전엔 여기서 얏호 요소를 음소거 재생→정지했는데, 첫 터치의 언락 두 개가 겹치면 막 재생한 얏호를 멈추는 문제가 있었다.
   async unlock() {
-    const { audio, video } = this.els();
-    try { audio.muted = true; await audio.play(); audio.pause(); audio.currentTime = 0; audio.muted = false; } catch (e) {}
-    try { await video.play(); video.pause(); } catch (e) {}
+    if (window.FitlogSound) window.FitlogSound.unlock();
     this._audioUnlocked = true;
     this.keepAwakeOn();   // 첫 탭부터 세션 내내 화면 유지 (C)
   },
 
-  // 알림 테스트 버튼용
-  async testSound() { await this.unlock(); this.playChime(); },
-  playChime() { const { audio } = this.els(); audio.currentTime = 0; audio.play().catch(() => {}); },
+  // 알림 테스트 버튼용 — "얏호~"(휴식 끝)
+  async testSound() { this.unlock(); this.playChime(); },
+  playChime() { if (window.FitlogSound) window.FitlogSound.play("rest"); },
 
   // 화면 유지 (C): Screen Wake Lock(주력, iOS 16.4+) + 무음 video(폴백) + 워치독(주기 재획득)
   // 타이머 도는 동안만이 아니라 운동 세션 내내 유지. 앱이 백그라운드/종료되면 자연 해제.
@@ -76,7 +75,7 @@ const RestTimer = {
   start(type, durationSeconds) {
     this.cancel();
     const now = Date.now();
-    this.state = { type, durationSeconds, startedAt: now, endsAt: now + durationSeconds * 1000, running: true };
+    this.state = { type, durationSeconds, startedAt: now, endsAt: now + durationSeconds * 1000, running: true, lastTick: null };
     this.keepAwakeOn();          // 세션 유지(이미 켜져 있으면 유지)
     this._render();
     this._tick = setInterval(() => this._render(), 250);
@@ -90,6 +89,12 @@ const RestTimer = {
     const { bar, barTime } = this.els();
     bar.hidden = false; bar.classList.remove("ended");
     barTime.textContent = this._mmss(ms);
+    // 휴식 끝나기 5·4·3·2·1초 전 "똑"(docs/SOUND_DESIGN.md). 시작 직후 2초는 내지 않고, 같은 초는 한 번만.
+    const sec = Math.ceil(ms / 1000), st = this.state;
+    if (sec >= 1 && sec <= 5 && sec !== st.lastTick && (st.lastTick === null || sec < st.lastTick) && st.durationSeconds - sec >= 2) {
+      if (window.FitlogSound) window.FitlogSound.play("tick");
+      st.lastTick = sec;
+    }
     if (typeof this.onTick === "function") this.onTick(ms, this.state);
     if (ms <= 0) this._finish();
   },
