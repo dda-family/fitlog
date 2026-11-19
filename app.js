@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v37";
+const APP_VERSION = "v38";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -55,7 +55,9 @@ const App = {
     this.historyRange = this.loadHistoryRange();   // 기록 탭 분석 기간 (localStorage 유지)
     const todayKey = WD_KEYS[new Date().getDay()];
     const suggested = this.settings.dayTemplateMap[todayKey] || this.templates[0].id;
+    const saved = this._loadSaved();   // 새로고침·앱 재시작 전에 진행 중이던 세션(v38) → 오늘 화면에서 계속/새로 시작 선택
     this.startSession(suggested);
+    this.pendingRecovery = saved;
     await this.loadLastResults(suggested);
     this.show("today");
   },
@@ -98,8 +100,12 @@ const App = {
   },
   wireTimerHooks() {
     const T = window.FitlogTimer;
-    T.onTick = (ms) => { const cd = document.getElementById("inline-cd-num"); if (cd) cd.textContent = T._mmss(ms); };
+    T.onTick = (ms, st) => {
+      const cd = document.getElementById("inline-cd-num"); if (cd) cd.textContent = T._mmss(ms);
+      const lb = document.getElementById("timer-bar-label"); if (lb && st) lb.textContent = st.type === "exercise_rest" ? "다음 운동까지 휴식" : "휴식 중";
+    };
     T.onEnd = () => {
+      const lb = document.getElementById("timer-bar-label"); if (lb) lb.textContent = "휴식 끝";
       const wrap = document.getElementById("inline-cd"), num = document.getElementById("inline-cd-num"), label = document.getElementById("inline-cd-label");
       if (wrap) wrap.classList.add("ended"); if (num) num.textContent = "00:00"; if (label) label.textContent = "휴식 종료 · 다음 세트 준비";
       setTimeout(() => { this.activeTimerExerciseId = null; const bar = document.getElementById("timer-bar"); if (bar) bar.hidden = true; if (this.view === "today") this.renderToday(); }, 2000);
@@ -119,9 +125,13 @@ const App = {
     });
     const c = window.FitlogDB.SEED.cardioDefault;
     const sessionCardio = hasCardioGuide ? null : { type: c.type, incline: c.incline, speedKmh: c.speedKmh, durationMinutes: c.durationMinutes, done: false };
-    this.session = { templateId, results, extras: [], cardio: sessionCardio, groupProgress: {} };
+    // order/removed: 오늘 세션만의 순서·삭제(v38, today-session.js). 저장된 루틴은 건드리지 않는다.
+    this.session = { templateId, results, extras: [], cardio: sessionCardio, groupProgress: {}, order: [], removed: {} };
     this.ended = false;
+    this.todayMode = null;
     if (this._resetRun) this._resetRun();   // 시간형/연속 세트 수행 상태도 새 세션과 함께 초기화
+    if (this._histReset) this._histReset(); // 실행 취소 기록은 세션 단위
+    if (this._syncOrder) this._syncOrder();
   },
   newRes() { return { workSets: [], warmupSets: [], skipped: false, showExtra: false, notes: "" }; },
   newCardioRes(g) {
@@ -246,10 +256,11 @@ const App = {
     if (sec.length) t += "  (보조: " + sec.map((id) => this.regionLabel(id)).join(" · ") + ")";
     return t;
   },
+  // 오늘 세션의 운동 목록: 오늘 순서대로, 오늘에서 삭제한 운동 제외(todayBlocks — today-session.js)
   items() {
     const grp = this.groupRoundsByGuide ? this.groupRoundsByGuide(this.session.templateId) : {};
-    const seeded = this.guidesOf(this.session.templateId).map((g) => ({ guide: grp[g.id] ? { ...g, targetSets: grp[g.id].rounds } : g, exercise: this.exercise(g.exerciseId), res: this.session.results[g.exerciseId], isExtra: false }));
-    return seeded.concat(this.session.extras.map((x) => ({ ...x, isExtra: true })));
+    const mk = (g) => ({ guide: grp[g.id] ? { ...g, targetSets: grp[g.id].rounds } : g, exercise: this.exercise(g.exerciseId), res: this.session.results[g.exerciseId], isExtra: false });
+    return this.todayBlocks().flatMap((b) => b.type === "group" ? b.guides.map(mk) : b.type === "single" ? [mk(b.guide)] : [{ ...b.extra, isExtra: true }]);
   },
 
   // opts.fromNav: 하단 탭을 눌러 진입(내 운동은 항상 기록부터). opts.myTab: 내 운동 서브탭 지정.
@@ -264,6 +275,7 @@ const App = {
     this._disposeExViewer();   // 운동 상세 3D 뷰어 정리
     document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== `view-${view}`));
     document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.view === view ? "true" : "false"));
+    if (view !== "today") this._setTodayActive(false);   // 실행 취소 버튼은 오늘 화면에서만
     if (view === "today") { this._ensureSessionResults(); this.renderToday(); }
     else if (view === "settings") this.renderSettings();
     else if (view === "my") this.enterMy(opts);
@@ -279,11 +291,14 @@ const App = {
       const ex = this.exercise(g.exerciseId);
       this.session.results[g.exerciseId] = this.isCardio(ex, g) ? this.newCardioRes(g) : this.newRes();
     });
+    this._syncOrder();
   },
 
   // ---------------- 오늘 ----------------
   renderToday() {
     const root = document.getElementById("view-today"); root.textContent = "";
+    if (this.pendingRecovery) { this._setTodayActive(false); this.renderRecovery(root); return; }   // 진행 중이던 세션 복구 선택(v38)
+    if (this.todayMode === "reorder" && !this.ended) { this._setTodayActive(true); this.renderTodayReorder(root); this._afterTodayRender(); return; }
     const tpl = this.template(this.session.templateId);
     const d = this.sessionDate;
     const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[WD_KEYS[d.getDay()]]})`;
@@ -298,25 +313,31 @@ const App = {
 
     root.appendChild(el("div", { class: "today-head" }, [
       dateBadge,
-      el("div", { class: "head-row" }, [dateBtn, el("button", { class: "btn btn-sm add-ex", onclick: () => this.addExtra() }, "＋ 운동 추가")]),
+      el("div", { class: "head-row" }, [dateBtn, el("div", { class: "head-actions" }, [
+        el("button", { class: "btn btn-sm add-ex", onclick: () => this.addExtra() }, "＋ 운동 추가"),
+        el("button", { class: "btn btn-sm add-ex", ...(this.ended || this.run || this._movableKeys().length < 2 ? { disabled: "disabled" } : {}), onclick: () => this.openTodayReorder() }, "순서 변경"),
+      ])]),
       el("div", { class: "today-title", text: tpl.name }),
       el("div", { class: "today-actions" }, [el("div", { class: "select-wrap" }, [select]), el("button", { class: "btn btn-sm btn-ghost", onclick: () => window.FitlogTimer.testSound() }, "🎧 알림 테스트")]),
     ]));
 
-    if (this.ended) { this.renderSummary(root); return; }
-    this.renderTodayItems(root);   // 독립 운동(횟수형/시간형) · 연속 세트 블록 단위
+    if (this.ended) { this._setTodayActive(false); this.renderSummary(root); this._afterTodayRender(); return; }
+    this._setTodayActive(true);
+    this.renderTodayItems(root);   // 독립 운동(횟수형/시간형) · 연속 세트 블록 단위 — 오늘 순서대로
     if (this.session.cardio) root.appendChild(this.renderCardio());
     root.appendChild(el("button", { class: "btn btn-block btn-ghost", style: "margin-top:4px", onclick: () => { this.ended = true; this._resetRun(); window.FitlogTimer.cancel(); this.renderToday(); window.scrollTo(0, 0); } }, "오늘 운동 종료"));
+    this._afterTodayRender();   // 진행 중 세션 임시 저장 + 실행 취소 버튼 상태
   },
 
   renderCard(it) {
     const { guide, exercise: ex, res, isExtra } = it;
     if (this.isCardio(ex, guide, res)) return this.renderCardioExerciseCard(it);
+    const rp = this._rp(it);   // 실행 취소 저널용 결과 경로
     const targetMet = res.workSets.length >= guide.targetSets;
     const card = el("div", { class: "card" + (res.skipped ? " skipped" : targetMet ? " done" : "") });
 
     let nameNode;
-    if (isExtra) nameNode = el("input", { class: "ex-name-input", type: "text", value: ex.name || "", placeholder: "운동 이름 (예: 무릎모아 앉았다 일어나기)", oninput: (e) => { ex.name = e.target.value; } });
+    if (isExtra) nameNode = this._journalInput(el("input", { class: "ex-name-input", type: "text", value: ex.name || "", placeholder: "운동 이름 (예: 무릎모아 앉았다 일어나기)", oninput: (e) => { ex.name = e.target.value; } }), ["extras", "#" + ex.id, "exercise", "name"], "운동 이름 변경");
     else nameNode = el("div", { class: "ex-name" }, [document.createTextNode(ex.name), guide.optional ? el("span", { class: "opt", text: "선택" }) : null]);
     card.appendChild(el("div", { class: "card-top" }, [nameNode, this.badgeFor(guide, ex, res)]));
 
@@ -324,19 +345,20 @@ const App = {
     if (!isExtra) { const lm = this.lastMap[ex.id]; card.appendChild(el("div", { class: "last-line", text: lm ? `지난번  ${this.weightText(ex, lm.weight)} · ${lm.reps.join(" / ")}` : "지난번  기록 없음" })); }
 
     if (res.skipped) {
-      card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 운동 생략됨" }), el("button", { class: "link", onclick: () => { res.skipped = false; this.renderToday(); } }, "되돌리기")]));
+      card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 운동 생략됨" }), this._footActions([
+        el("button", { class: "link", onclick: () => this.setSkipped([rp], false, ex.name) }, "되돌리기"), this._removeLink(it)])]));
       return card;
     }
-    if (ex.warmupEnabled) card.appendChild(this.renderWarmup(guide, ex, res));
+    if (ex.warmupEnabled) card.appendChild(this.renderWarmup(guide, ex, res, rp));
 
     const sets = el("div", { class: "sets" });
-    res.workSets.forEach((s, i) => sets.appendChild(res.editingSet === i ? this.renderEditRow(res, i, ex) : this.renderRecordedRow(i, s, ex, i >= guide.targetSets, res)));
+    res.workSets.forEach((s, i) => sets.appendChild(res.editingSet === i ? this.renderEditRow(res, i, ex, rp) : this.renderRecordedRow(i, s, ex, i >= guide.targetSets, res)));
     const activeIdx = res.workSets.length;
     if (activeIdx < guide.targetSets) {
-      sets.appendChild(this.renderActiveRow(guide, ex, res, activeIdx, false));
+      sets.appendChild(this.renderActiveRow(guide, ex, res, activeIdx, false, rp));
       for (let i = activeIdx + 1; i < guide.targetSets; i++) sets.appendChild(el("div", { class: "set-row" }, [el("span", { class: "set-no", text: `${i + 1}` }), el("span", { class: "wait", text: "대기" })]));
     } else {
-      if (res.showExtra) sets.appendChild(this.renderActiveRow(guide, ex, res, activeIdx, true));
+      if (res.showExtra) sets.appendChild(this.renderActiveRow(guide, ex, res, activeIdx, true, rp));
       else sets.appendChild(el("button", { class: "btn btn-sm btn-ghost add-set", onclick: () => { res.showExtra = true; this.renderToday(); } }, "＋ 세트 추가"));
     }
     card.appendChild(sets);
@@ -349,20 +371,25 @@ const App = {
       ]));
     }
 
-    card.appendChild(this.memoField(res));
+    card.appendChild(this.memoField(res, rp));
 
+    // 카드 아래: 초기화 | 이번 운동 생략 · 오늘에서 삭제 (생략 = 계획대로 안 함 → 기록에 미실시, 삭제 = 오늘 세션에서 제거 · 루틴은 그대로)
     card.appendChild(el("div", { class: "card-foot" }, [
       (res.workSets.length > 0 && !isExtra)
-        ? el("button", { class: "link", onclick: () => { if (window.confirm("이 운동의 본세트 기록을 초기화할까요? (워밍업·메모는 유지)")) { res.workSets = []; res.showExtra = false; res.editingSet = null; this.renderToday(); } } }, "본세트 초기화")
+        ? el("button", { class: "link", onclick: () => { if (window.confirm("이 운동의 본세트 기록을 초기화할까요? (워밍업·메모는 유지)")) this._act("본세트 초기화", [[...rp, "workSets"], [...rp, "showExtra"], [...rp, "editingSet"]], () => { res.workSets = []; res.showExtra = false; res.editingSet = null; }); } }, "본세트 초기화")
         : el("span", {}, ""),
-      isExtra ? el("button", { class: "link danger", onclick: () => { this.session.extras = this.session.extras.filter((e2) => e2.exercise.id !== ex.id); this.renderToday(); } }, "삭제")
-              : (!targetMet ? el("button", { class: "link danger", onclick: () => this.skipExercise(guide) }, "이번 운동 생략") : el("span", {}, "")),
+      this._footActions([
+        !isExtra && !targetMet ? el("button", { class: "link", onclick: () => this.setSkipped([rp], true, ex.name) }, "이번 운동 생략") : null,
+        this._removeLink(it),
+      ]),
     ]));
     return card;
   },
 
-  memoField(res) {
+  // 메모: 입력 중엔 바로 반영, 입력을 마치면(change) 실행 취소 1단위로 기록
+  memoField(res, rp) {
     const input = el("input", { class: "memo-input", type: "text", value: res.notes || "", placeholder: "＋ 메모 (예: 우측 허리 통증)", oninput: (e) => { res.notes = e.target.value; } });
+    if (rp) this._journalInput(input, [...rp, "notes"], "메모 변경");
     return el("div", { class: "memo-row" }, [input]);
   },
 
@@ -378,16 +405,17 @@ const App = {
     const lm = this.lastMap[ex.id];
     if (lm && lm.cardio) card.appendChild(el("div", { class: "last-line", text: this.cardioActualLine(ex, lm.cardio, "지난번  ") }));
     const spec = this.cardioFieldSpec(ex);
-    const mk = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(res.cardio, key, { step, min: 0, unit: "" })]);
+    const rp = this._rp(it);
+    const mk = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(res.cardio, key, { step, min: 0, unit: "", path: [...rp, "cardio", key], label: "유산소 값 변경" })]);
     const fields = [mk("durationMinutes", "시간 (분)", 1)];
     if (spec.speed) fields.push(mk("speedKmh", "속도 (km/h)", 0.1));
     if (spec.incline) fields.push(mk("incline", "경사", 1));
     card.appendChild(el("div", { class: "cardio-grid", style: `grid-template-columns:repeat(${fields.length},1fr)` }, fields));
-    card.appendChild(this.memoField(res));
+    card.appendChild(this.memoField(res, rp));
     card.appendChild(el("div", { class: "card-foot" }, [
-      el("button", { class: "btn btn-block " + (res.done ? "btn-ghost" : "btn-primary"), onclick: () => { res.done = !res.done; this.renderToday(); } }, res.done ? "유산소 완료 취소" : "✓ 유산소 완료"),
-      isExtra ? el("button", { class: "link danger", onclick: () => { this.session.extras = this.session.extras.filter((e2) => e2.exercise.id !== ex.id); this.renderToday(); } }, "삭제") : null,
-    ].filter(Boolean)));
+      el("button", { class: "btn btn-block " + (res.done ? "btn-ghost" : "btn-primary"), onclick: () => this._act(res.done ? "유산소 완료 취소" : "유산소 완료", [[...rp, "done"]], () => { res.done = !res.done; }) }, res.done ? "유산소 완료 취소" : "✓ 유산소 완료"),
+    ]));
+    card.appendChild(el("div", { class: "card-foot" }, [el("span", {}, ""), this._footActions([this._removeLink(it)])]));
     return card;
   },
   // 유산소 종목의 입력 필드 구성. 기존 유산소(플래그 없음)는 시간·속도·경사 모두(호환 유지).
@@ -411,7 +439,8 @@ const App = {
     return (prefix || "") + parts.join(" · ");
   },
 
-  renderWarmup(guide, ex, res) {
+  renderWarmup(guide, ex, res, rp) {
+    const W = [...rp, "warmupSets"];
     const box = el("div", { class: "warmup-box" });
     box.appendChild(el("div", { class: "warmup-head" }, [el("span", { class: "w-tag", text: "W" }), el("span", { text: "워밍업 · 판정 제외 · 입력 시 자동 기록" })]));
     if (guide.warmupSuggestions && guide.warmupSuggestions.length)
@@ -420,15 +449,15 @@ const App = {
     res.warmupSets.forEach((s, i) => {
       rows.appendChild(el("div", { class: "set-row warmup" }, [
         el("span", { class: "set-no", text: "W" }),
-        this.dial(s, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
-        this.dial(s, "reps", { step: 1, min: 0, unit: "회" }),
-        el("div", { class: "w-actions" }, [el("span", { class: "w-saved", text: "✓ 기록됨" }), el("button", { class: "row-x", "aria-label": "삭제", onclick: () => { res.warmupSets.splice(i, 1); this.renderToday(); } }, "✕")]),
+        this.dial(s, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true, path: [...W, i, "weight"], label: "워밍업 중량 변경" }),
+        this.dial(s, "reps", { step: 1, min: 0, unit: "회", path: [...W, i, "reps"], label: "워밍업 횟수 변경" }),
+        el("div", { class: "w-actions" }, [el("span", { class: "w-saved", text: "✓ 기록됨" }), el("button", { class: "row-x", "aria-label": "삭제", onclick: () => this._act("워밍업 세트 삭제", [W], () => { res.warmupSets.splice(i, 1); }) }, "✕")]),
       ]));
     });
     box.appendChild(rows);
     box.appendChild(el("div", { class: "w-foot" }, [
-      el("button", { class: "btn btn-sm btn-ghost", onclick: () => { const sug = guide.warmupSuggestions && guide.warmupSuggestions[0]; res.warmupSets.push({ weight: sug ? sug.weight : 0, reps: 10 }); this.renderToday(); } }, "＋ 워밍업 세트"),
-      res.warmupSets.length > 0 ? el("button", { class: "link", onclick: () => { if (window.confirm("워밍업 세트만 초기화할까요? (본세트·메모는 유지)")) { res.warmupSets = []; this.renderToday(); } } }, "워밍업 초기화") : null,
+      el("button", { class: "btn btn-sm btn-ghost", onclick: () => this._act("워밍업 세트 추가", [W], () => { const sug = guide.warmupSuggestions && guide.warmupSuggestions[0]; res.warmupSets.push({ weight: sug ? sug.weight : 0, reps: 10 }); }) }, "＋ 워밍업 세트"),
+      res.warmupSets.length > 0 ? el("button", { class: "link", onclick: () => { if (window.confirm("워밍업 세트만 초기화할까요? (본세트·메모는 유지)")) this._act("워밍업 초기화", [W], () => { res.warmupSets = []; }); } }, "워밍업 초기화") : null,
     ].filter(Boolean)));
     return box;
   },
@@ -441,7 +470,7 @@ const App = {
     ]);
   },
 
-  renderActiveRow(guide, ex, res, i, isExtra) {
+  renderActiveRow(guide, ex, res, i, isExtra, rp) {
     const prev = res.workSets[res.workSets.length - 1];
     const lm = this.lastMap[ex.id];
     const defWeight = prev ? prev.weight : (lm && lm.weight != null ? lm.weight : (guide.targetWeight != null ? guide.targetWeight : null));
@@ -451,12 +480,12 @@ const App = {
     // (res.draftAt이 현재 세트 인덱스와 일치할 때만 재사용 — 세트가 넘어가면 자연히 새 기본값으로)
     const draft = (res.draftAt === i && res.draft) ? res.draft : { weight: defWeight, reps: defReps };
     res.draftAt = i; res.draft = draft;
-    const btn = el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: () => this.completeSet(guide, ex, res, draft, isLastTarget, isExtra) },
+    const btn = el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: () => this.completeSet(guide, ex, res, draft, isLastTarget, isExtra, rp) },
       isExtra ? "✓ 추가 세트 기록" : (isLastTarget ? "✓ 운동 완료 · 다음 운동 준비" : "✓ 세트 완료"));
     const row = el("div", { class: "set-row" + (isExtra ? " extra-active" : "") }, [
       el("span", { class: "set-no", text: isExtra ? "＋" : `${i + 1}` }),
-      this.dial(draft, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
-      this.dial(draft, "reps", { step: 1, min: 0, unit: "회" }),
+      this.dial(draft, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true, path: [...rp, "draft", "weight"], label: "중량 변경" }),
+      this.dial(draft, "reps", { step: 1, min: 0, unit: "회", path: [...rp, "draft", "reps"], label: "횟수 변경" }),
       el("div", { class: "set-complete" }, [btn]),
     ]);
     if (isExtra) row.appendChild(el("button", { class: "link", style: "grid-column:1/-1", onclick: () => { res.showExtra = false; res.draft = null; this.renderToday(); } }, "취소"));
@@ -464,10 +493,10 @@ const App = {
   },
 
   // 완료된 세트 수정 행 (수정 버튼 → 이 편집 행)
-  renderEditRow(res, i, ex) {
+  renderEditRow(res, i, ex, rp) {
     const set = res.workSets[i];
     const draft = { weight: set.weight, reps: set.reps };
-    const save = () => { res.workSets[i] = { weight: draft.weight, reps: draft.reps }; res.editingSet = null; this.renderToday(); };
+    const save = () => this._act("세트 수정", [[...rp, "workSets", i], [...rp, "editingSet"]], () => { res.workSets[i] = { weight: draft.weight, reps: draft.reps }; res.editingSet = null; });
     const row = el("div", { class: "set-row extra-active" }, [
       el("span", { class: "set-no", text: `${i + 1}` }),
       this.dial(draft, "weight", { step: 0.5, min: 0, unit: this.unitLabel(ex), allowNull: true }),
@@ -479,7 +508,8 @@ const App = {
   },
 
   // 드래그 다이얼: 세로로 밀어 값 조절(절충 가속), 짧게 탭하면 직접 입력.
-  // obj[key]를 직접 변경. opts: { step, min, unit, decimals, allowNull, onChange }
+  // obj[key]를 직접 변경. opts: { step, min, unit, decimals, allowNull, onChange, path, label }
+  // opts.path가 있으면(오늘 세션) 드래그 한 번·직접 입력 한 번이 실행 취소 1단위로 기록된다.
   dial(obj, key, opts) {
     const step = opts.step, min = opts.min == null ? 0 : opts.min;
     const dec = opts.decimals == null ? (step < 1 ? 1 : 0) : opts.decimals;
@@ -497,8 +527,10 @@ const App = {
 
     // 탭 → 직접 입력 (click 핸들러 안에서 즉시 focus → iOS 키보드 확실히 뜸)
     let editing = false;
+    const journal = (before) => { if (opts.path && before !== obj[key] && this._pushCmd) this._pushCmd(opts.label || "값 변경", [{ p: opts.path, b: before, a: obj[key] }]); };
     face.addEventListener("click", () => {
       if (editing) return; editing = true;
+      const before = obj[key];
       face.textContent = "";
       const input = el("input", { type: "text", inputmode: "decimal", class: "dial-input", value: obj[key] == null ? "" : String(obj[key]) });
       const mid = el("div", { class: "dial-mid" }, [input, unit ? el("span", { class: "dial-unit", text: unit }) : null].filter(Boolean));
@@ -509,15 +541,16 @@ const App = {
         if (raw === "") obj[key] = opts.allowNull ? null : min;
         else { let n = Number(raw); if (isNaN(n)) n = Number(obj[key]) || 0; obj[key] = Math.max(min, Number(n.toFixed(4))); }
         editing = false; paintFace(); opts.onChange && opts.onChange(obj[key]);
+        journal(before);
       };
       input.addEventListener("blur", commit);
       input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); input.blur(); } });
     });
 
     // 오른쪽 그립 드래그 → 값 조절 (절충 가속). 숫자를 손가락이 가리지 않음.
-    let dragging = false, lastY = 0, acc = 0;
+    let dragging = false, lastY = 0, acc = 0, dragFrom;
     grip.addEventListener("pointerdown", (e) => {
-      dragging = true; lastY = e.clientY; acc = 0;
+      dragging = true; lastY = e.clientY; acc = 0; dragFrom = obj[key];
       try { grip.setPointerCapture(e.pointerId); } catch (_) {}
       wrap.classList.add("active"); e.preventDefault();
     });
@@ -536,7 +569,7 @@ const App = {
         opts.onChange && opts.onChange(obj[key]);
       }
     });
-    const end = () => { if (!dragging) return; dragging = false; wrap.classList.remove("active"); };
+    const end = () => { if (!dragging) return; dragging = false; wrap.classList.remove("active"); journal(dragFrom); };
     grip.addEventListener("pointerup", end);
     grip.addEventListener("pointercancel", end);
 
@@ -554,22 +587,28 @@ const App = {
     ]);
   },
 
-  completeSet(guide, ex, res, draft, isLastTarget, isExtra) {
-    const weight = draft.weight == null || draft.weight === "" ? null : Number(draft.weight);
-    const reps = Number(draft.reps) || 0;
-    res.workSets.push({ weight, reps });
-    res.draft = null; res.draftAt = null; // 완료된 세트의 임시값 정리 → 다음 세트는 새 기본값으로 시작
-    if (isExtra) res.showExtra = false;
-    this.activeTimerExerciseId = isExtra ? ex.id : guide.exerciseId;
-    const useExercise = isLastTarget && !isExtra;
-    window.FitlogTimer.start(useExercise ? "exercise_rest" : "set_rest", useExercise ? this.settings.exerciseRestSeconds : this.settings.setRestSeconds);
-    this.renderToday();
+  // 세트 완료 = 실행 취소 1단위(세트 기록 + 이 동작이 시작한 휴식). 취소하면 그 휴식도 함께 취소된다.
+  completeSet(guide, ex, res, draft, isLastTarget, isExtra, rp) {
+    rp = rp || (isExtra ? ["extras", "#" + ex.id, "res"] : ["results", guide.exerciseId]);
+    this._act("세트 완료", [[...rp, "workSets"], [...rp, "draft"], [...rp, "draftAt"], [...rp, "showExtra"]], () => {
+      const weight = draft.weight == null || draft.weight === "" ? null : Number(draft.weight);
+      const reps = Number(draft.reps) || 0;
+      res.workSets.push({ weight, reps });
+      res.draft = null; res.draftAt = null; // 완료된 세트의 임시값 정리 → 다음 세트는 새 기본값으로 시작
+      if (isExtra) res.showExtra = false;
+      this.activeTimerExerciseId = isExtra ? ex.id : guide.exerciseId;
+      const useExercise = isLastTarget && !isExtra;
+      window.FitlogTimer.start(useExercise ? "exercise_rest" : "set_rest", useExercise ? this.settings.exerciseRestSeconds : this.settings.setRestSeconds);
+    });
   },
-  skipExercise(guide) { this.session.results[guide.exerciseId].skipped = true; this.renderToday(); },
+  skipExercise(guide) { this.setSkipped([["results", guide.exerciseId]], true, (this.exercise(guide.exerciseId) || {}).name); },
+  // 오늘 운동 추가(오늘 세션에만 — 루틴은 그대로)
   addExtra() {
     const id = `extra-${++this._extraSeq}`;
-    this.session.extras.push({ guide: { exerciseId: id, targetWeight: null, targetSets: 3, minReps: 1, maxReps: 999, optional: true, warmupSuggestions: [], notes: "" }, exercise: { id, name: "", sideMode: "total", warmupEnabled: false }, res: this.newRes() });
-    this.renderToday();
+    this._act("운동 추가", [["extras"], ["order"]], () => {
+      this.session.extras.push({ guide: { exerciseId: id, targetWeight: null, targetSets: 3, minReps: 1, maxReps: 999, optional: true, warmupSuggestions: [], notes: "" }, exercise: { id, name: "", sideMode: "total", warmupEnabled: false }, res: this.newRes() });
+      this._syncOrder();
+    });
     const inputs = document.querySelectorAll(".ex-name-input"); if (inputs.length) inputs[inputs.length - 1].focus();
   },
   bump(input, delta, min) {
@@ -608,9 +647,9 @@ const App = {
     const c = this.session.cardio;
     const card = el("div", { class: "card cardio" + (c.done ? " done" : "") });
     card.appendChild(el("div", { class: "card-top" }, [el("div", { class: "ex-name" }, "유산소 · 경사 걷기"), c.done ? el("span", { class: "badge completed", text: "완료" }) : el("span", {})]));
-    const mk = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(c, key, { step, min: 0, unit: "" })]);
+    const mk = (key, label, step) => el("div", { class: "cardio-field" }, [el("label", { text: label }), this.dial(c, key, { step, min: 0, unit: "", path: ["cardio", key], label: "유산소 값 변경" })]);
     card.appendChild(el("div", { class: "cardio-grid" }, [mk("incline", "경사", 1), mk("speedKmh", "속도 (km/h)", 0.1), mk("durationMinutes", "시간 (분)", 1)]));
-    card.appendChild(el("button", { class: "btn btn-block " + (c.done ? "btn-ghost" : "btn-primary"), onclick: () => { c.done = !c.done; this.renderToday(); } }, c.done ? "유산소 완료 취소" : "✓ 유산소 완료"));
+    card.appendChild(el("button", { class: "btn btn-block " + (c.done ? "btn-ghost" : "btn-primary"), onclick: () => this._act(c.done ? "유산소 완료 취소" : "유산소 완료", [["cardio", "done"]], () => { c.done = !c.done; }) }, c.done ? "유산소 완료 취소" : "✓ 유산소 완료"));
     return card;
   },
 
@@ -746,6 +785,7 @@ const App = {
     const session = this.buildSession();
     let savedOK = false;
     if (this.dbReady) { try { await window.FitlogDB.DB.put("workoutSessions", session); await this.loadLastResults(this.session.templateId); savedOK = true; } catch (e) { console.error("[Fitlog] 저장 실패", e); } }
+    if (savedOK) { this._histReset(); this._clearSaved(); this.sessionSaved = true; }   // 정식 기록으로 저장됨 → 임시 세션·실행 취소 기록 정리
     else console.log("[Fitlog] (DB 미사용) 세션:", session);
 
     const root = document.getElementById("view-today"); root.textContent = "";
@@ -1453,7 +1493,7 @@ const App = {
 
     const save = async () => {
       g.targetWeight = wInput.value === "" ? null : Number(wInput.value);
-      g.targetSets = Number(setsInput.value) || g.targetSets;
+      if (!grouped) g.targetSets = Number(setsInput.value) || g.targetSets;
       g.minReps = Number(minInput.value); g.maxReps = Number(maxInput.value);
       if (g.minReps > g.maxReps) { const t = g.minReps; g.minReps = g.maxReps; g.maxReps = t; }
       g.optional = optChk.checked; g.notes = notesInput.value;
@@ -1468,6 +1508,7 @@ const App = {
     };
     const promote = async () => { try { const w = await window.FitlogDB.DB.lastUsedWeight(g.exerciseId); if (w != null) wInput.value = w; } catch (_) {} };
     const move = (dir) => this.moveGuide(g, dir);   // 연속 세트 구조를 지키는 블록 단위 이동
+    const grouped = !!this.groupRoundsByGuide(g.templateId)[g.id];   // 연속 세트 안: 세트 수는 그룹 반복 횟수를 따른다(실제 실행과 일치)
     const del = async () => {
       if (!window.confirm(`'${ex.name}'을(를) 이 루틴에서 제거할까요? (기존 기록은 그대로 남아요)`)) return;
       try { await window.FitlogDB.DB.delete("routineGuides", g.id); await this.reloadDefs(); } catch (e) { console.error(e); }
@@ -1483,7 +1524,8 @@ const App = {
       this._measureSwitch(g, ex),
       el("div", { class: "gedit-grid" }, [
         field("중량", el("div", { class: "with-btn" }, [wInput, el("button", { class: "btn btn-sm btn-ghost", onclick: promote }, "지난값")])),
-        field("목표 세트", setsInput), field("최소 반복", minInput), field("최대 반복", maxInput),
+        grouped ? field("목표 세트", el("div", { class: "gedit-note", text: "연속 세트 반복 횟수를 따라요" })) : field("목표 세트", setsInput),
+        field("최소 반복", minInput), field("최대 반복", maxInput),
       ]),
       el("div", { class: "gedit-toggles" }, [toggle("선택 운동", optChk), toggle("워밍업 사용", warmChk)]),
       field("메모", notesInput),
@@ -1644,7 +1686,7 @@ const App = {
         const f = e.target.files && e.target.files[0]; if (!f) return;
         if (!window.confirm("복원하면 현재 기기의 데이터가 백업 파일 내용으로 완전히 교체됩니다. 계속할까요?")) { e.target.value = ""; return; }
         const r = await window.FitlogBackup.importAll(f); e.target.value = "";
-        if (r.ok) { window.alert("복원 완료. 앱을 다시 불러옵니다."); location.reload(); }
+        if (r.ok) { this._clearSaved(); window.alert("복원 완료. 앱을 다시 불러옵니다."); location.reload(); }
         else window.alert("복원 실패: " + r.reason);
       } });
     root.appendChild(el("div", { class: "settings-group" }, [
@@ -1683,7 +1725,7 @@ const App = {
     if (!this.dbReady) return;
     if (!window.confirm("모든 운동기록과 가이드가 삭제됩니다. 계속할까요?")) return;
     if (!window.confirm("정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return;
-    try { await window.FitlogDB.DB.clearAll(); location.reload(); } catch (e) { console.error(e); }
+    try { await window.FitlogDB.DB.clearAll(); this._clearSaved(); location.reload(); } catch (e) { console.error(e); }
   },
 
   // ---------------- AI 코치 (Phase 4) ----------------

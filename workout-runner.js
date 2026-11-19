@@ -88,20 +88,22 @@
       return out;
     },
 
-    // ───────── 오늘: 블록 단위 렌더 ─────────
+    // ───────── 오늘: 블록 단위 렌더(오늘 순서 · 오늘에서 삭제 반영 — todayBlocks) ─────────
     renderTodayItems(root) {
       const items = this.items();
       const byGuide = new Map(items.filter((i) => !i.isExtra).map((i) => [i.guide.id, i]));
-      this.routineBlocks(this.session.templateId).forEach((b) => {
+      const byExtra = new Map(items.filter((i) => i.isExtra).map((i) => [i.exercise.id, i]));
+      this.todayBlocks().forEach((b) => {
         if (b.type === "group") {
           const its = b.guides.map((g) => byGuide.get(g.id)).filter((it) => it && it.exercise);
           if (its.length) root.appendChild(this.renderGroupCard(b, its));
-        } else {
-          const it = byGuide.get(b.guide.id); if (!it) return;
+        } else if (b.type === "single") {
+          const it = byGuide.get(b.guide.id); if (!it || !it.exercise) return;
           root.appendChild(this.isDurationItem(it.guide, it.exercise) ? this.renderDurationCard(it) : this.renderCard(it));
+        } else {
+          const it = byExtra.get(b.extra.exercise.id); if (it) root.appendChild(this.renderCard(it));
         }
       });
-      items.filter((i) => i.isExtra).forEach((it) => root.appendChild(this.renderCard(it)));
     },
     _inlineRest(key) {
       if (this.activeTimerExerciseId !== key || !window.FitlogTimer.state) return null;
@@ -121,7 +123,7 @@
     // 단독 시간형 운동 카드
     renderDurationCard(it) {
       const { guide: g, exercise: ex, res } = it;
-      const key = "x:" + ex.id;
+      const key = "x:" + ex.id, rp = this._rp(it);
       const st = this.evalExercise(g, ex, res).status;
       const targetMet = res.workSets.length >= g.targetSets;
       const card = el("div", { class: "card dur-card" + (res.skipped ? " skipped" : targetMet && !this._runIs(key) ? " done" : "") });
@@ -132,7 +134,8 @@
       card.appendChild(el("div", { class: "guide-line", text: `목표  ${this.durTargetText(g, ex)} · ${g.targetSets}세트` }));
       card.appendChild(el("div", { class: "last-line", text: this._lastDurLine(ex) }));
       if (res.skipped) {
-        card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 운동 생략됨" }), el("button", { class: "link", onclick: () => { res.skipped = false; this.renderToday(); } }, "되돌리기")]));
+        card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 운동 생략됨" }), this._footActions([
+          el("button", { class: "link", onclick: () => this.setSkipped([rp], false, ex.name) }, "되돌리기"), this._removeLink(it)])]));
         return card;
       }
       if (res.workSets.length) {
@@ -142,12 +145,15 @@
       }
       card.appendChild(this._runPanel(key, { setNo: res.workSets.length + 1, total: g.targetSets, previewSec: this.targetDur(g), lr: this.itemSides(g, ex) === "leftRight", done: targetMet, startLabel: "버티기 시작" }));
       const rest = this._inlineRest(key); if (rest) card.appendChild(rest);
-      card.appendChild(this.memoField(res));
+      card.appendChild(this.memoField(res, rp));
       card.appendChild(el("div", { class: "card-foot" }, [
         res.workSets.length > 0 && !this._runIs(key)
-          ? el("button", { class: "link", onclick: () => { if (window.confirm("이 운동의 기록을 초기화할까요? (메모는 유지)")) { res.workSets = []; this.renderToday(); } } }, "기록 초기화")
+          ? el("button", { class: "link", onclick: () => { if (window.confirm("이 운동의 기록을 초기화할까요? (메모는 유지)")) this._act("기록 초기화", [[...rp, "workSets"]], () => { res.workSets = []; }); } }, "기록 초기화")
           : el("span", {}, ""),
-        !targetMet && !this._runIs(key) ? el("button", { class: "link danger", onclick: () => this.skipExercise(g) }, "이번 운동 생략") : el("span", {}, ""),
+        this._runIs(key) ? el("span", {}, "") : this._footActions([
+          !targetMet ? el("button", { class: "link", onclick: () => this.setSkipped([rp], true, ex.name) }, "이번 운동 생략") : null,
+          this._removeLink(it),
+        ]),
       ]));
       return card;
     },
@@ -178,16 +184,22 @@
         ]));
       });
       card.appendChild(list);
+      const rps = its.map((i) => this._rp(i));
       if (skipped) {
-        card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 연속 세트 생략됨" }), el("button", { class: "link", onclick: () => { its.forEach((i) => { i.res.skipped = false; }); this.renderToday(); } }, "되돌리기")]));
+        card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 연속 세트 생략됨" }), this._footActions([
+          el("button", { class: "link", onclick: () => this.setSkipped(rps, false, "연속 세트") }, "되돌리기"), this._removeLink(b)])]));
         return card;
       }
       card.appendChild(this._runPanel(key, { setNo: gp + 1, total: rounds, done: gp >= rounds, startLabel: "연속 세트 시작", group: true }));
       const rest = this._inlineRest(key); if (rest) card.appendChild(rest);
-      its.forEach((it) => { const m = this.memoField(it.res); m.querySelector("input").placeholder = `＋ 메모 · ${it.exercise.name}`; card.appendChild(m); });
+      its.forEach((it, n) => { const m = this.memoField(it.res, rps[n]); m.querySelector("input").placeholder = `＋ 메모 · ${it.exercise.name}`; card.appendChild(m); });
+      // 연속 세트는 통째로만 생략·삭제(안쪽 운동 하나만 빼면 그룹 구조·바퀴 진행이 깨짐)
       card.appendChild(el("div", { class: "card-foot" }, [
         el("span", {}, ""),
-        !done && !running ? el("button", { class: "link danger", onclick: () => { its.forEach((i) => { i.res.skipped = true; }); this.renderToday(); } }, "이번 연속 세트 생략") : el("span", {}, ""),
+        running ? el("span", {}, "") : this._footActions([
+          !done ? el("button", { class: "link", onclick: () => this.setSkipped(rps, true, "연속 세트") }, "이번 연속 세트 생략") : null,
+          this._removeLink(b),
+        ]),
       ]));
       return card;
     },
@@ -280,7 +292,10 @@
       window.FitlogTimer.cancel(); this.activeTimerExerciseId = null;   // 쉬는 중 시작하면 휴식 종료
       window.FitlogTimer.keepAwakeOn();
       this._stopTicker();
-      this.run = { key, steps, idx: 0, partial: {}, recorded: false, phase: null };
+      // 실행 취소: 한 세트(연속 세트면 한 바퀴)가 끝난 결과 전체를 한 단위로 — 시작 전 상태를 기억(today-session.js)
+      const jp = [...new Set(steps.map((x) => x.exId))].map((id) => ["results", id, "workSets"]);
+      if (key.startsWith("g:")) jp.push(["groupProgress", key.slice(2)]);
+      this.run = { key, steps, idx: 0, partial: {}, recorded: false, phase: null, journal: this._snapPaths ? this._snapPaths(jp) : null };
       this._enterStep(Date.now(), false);
       this._renderRun();
     },
@@ -375,6 +390,7 @@
         if (g && done === g.targetSets) { type = "exercise_rest"; sec = this.settings.exerciseRestSeconds; }
       }
       if (withRest && sec > 0) { this.activeTimerExerciseId = r.key; window.FitlogTimer.start(type, sec); }   // 휴식 0초면 타이머 없음(딩-동·얏호 겹침 방지)
+      if (r.journal && this._commitSnap) this._commitSnap(r.key.startsWith("g:") ? "연속 세트 완료" : "세트 완료", r.journal, withRest && sec > 0);
     },
     stopRun() {
       const r = this.run; if (!r) return;

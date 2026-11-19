@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v37
-- CACHE_VERSION (service-worker.js): fitlog-v37
-- 다음 수정 시 둘 다 v38로 올릴 것
+- APP_VERSION (app.js): v38
+- CACHE_VERSION (service-worker.js): fitlog-v38
+- 다음 수정 시 둘 다 v39로 올릴 것
 
 ---
 
@@ -63,6 +63,7 @@ git push
 - v35: 시간형 운동·좌우 운동·연속 세트(`workout-runner.js`). 운동 측정 메타는 `FitlogCatalog.MEASUREMENT`(기존 `laterality`와 별개), 루틴 항목은 `measurementType`·`targetDurationSeconds`·`groupId`, 연속 세트는 `routineTemplates.groups`. 모두 선택 필드 — DB 버전·백업 형식 변경 없음. 상세는 DECISIONS v35
 - v36: 시간형 준비 시간 3초 → 5초(`PREP_SECONDS`), 삑은 마지막 3·2·1초만
 - v37: 사운드 정리 — `sound.js` 한 경로(HTML audio), 소리별 의미 고정. **소리를 바꾸기 전에 docs/SOUND_DESIGN.md부터 확인**
+- v38: 오늘 세션 UX 안정화(`today-session.js`) — **저장된 루틴 ≠ 오늘 세션**: 오늘 화면의 추가·삭제·순서 변경은 `session.order`/`session.removed`만 바꾸고 루틴(DB)은 건드리지 않음. 실행 취소/다시 실행은 경로 패치 저널(`_act`/`_pushCmd`) — 오늘 세션을 바꾸는 새 동작을 만들 땐 이걸 거칠 것. 진행 중 세션은 `localStorage["fitlog-active-session"]`에 임시 저장(백업·IndexedDB와 별개). 휴식 타이머 바는 문서 흐름 안의 sticky `#status-bar`. 상세는 DECISIONS v38
 
 ---
 

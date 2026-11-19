@@ -314,6 +314,18 @@ format 일치 / version 지원 / guideId 존재 / 숫자 필드 타입 / 세트 
 ## 19. 오프라인/PWA
 Service Worker가 앱 셸과 사운드를 캐시. 최소 캐시: `index.html`, `styles.css`, JS 파일들, `manifest.webmanifest`, 아이콘, `assets/sounds/rest-end.mp3`. 운동 데이터는 Cache Storage가 아니라 IndexedDB에 저장.
 
+### 19.1 진행 중 세션 임시 저장 (v38)
+저장(오늘 운동 저장) 전의 오늘 세션은 `localStorage["fitlog-active-session"]`에 임시로 둔다. IndexedDB 스토어·스키마 버전·백업 파일과 무관하다(백업에 포함되지 않음).
+```text
+{ v: 1, savedAt, date: "YYYY-MM-DD", session: { templateId, results, extras, cardio, groupProgress, order, removed },
+  ended, hist: { undo: [...], redo: [...] }, cmdSeq, extraSeq, rest: { type, startedAt, endsAt, key } | null,
+  summary: { name, total, started } }
+```
+- `session.order`: 오늘 순서(블록 키 `s:<guideId>` · `g:<groupId>` · `e:<extraId>`), `session.removed`: 오늘에서 삭제한 블록 키. 저장된 루틴은 바뀌지 않는다.
+- 쓰기: 입력/동작마다, 앱을 숨기거나 떠날 때. 시간형 수행 엔진이 도는 동안은 쓰지 않는다(직전 상태 유지).
+- 삭제: 오늘 운동 저장 성공 · 복구 화면의 [새로 시작] · 전체 초기화 · 백업 복원. 정식 기록(`workoutSessions`)에는 섞지 않는다.
+- 읽을 때 형식이 맞지 않거나 루틴이 없어졌으면 조용히 버린다.
+
 ## 20. 초기 시드 데이터
 최초 실행 시 PRODUCT_SPEC §5의 기본값을 생성한다.
 - `routineTemplates`: 3개(등·어깨·이두 / 가슴·삼두 / 하체).
