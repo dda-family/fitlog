@@ -6,6 +6,7 @@
  *   블록 키: "s:<guideId>" 독립 운동 · "g:<groupId>" 연속 세트 · "e:<extraId>" 오늘 추가 운동
  * 실행 취소/다시 실행: 경로 패치 저널 — 명령 = { id, label, ps: [{ p: 세션 기준 경로, b: 전, a: 후 }], fx: { rest } }
  *   경로 조각 "#<id>"는 배열에서 exercise.id가 같은 원소(오늘 추가 운동)를 가리킨다. 전체 상태 복제는 하지 않는다.
+ * 남은 시간·↶↷ 표시: 따로 띠 없이 큰 제목 줄 + 스크롤 시 접힌 헤더(#today-mini) + 다른 탭에선 하단 "오늘" 탭(v39).
  * 진행 중 세션 임시 저장: localStorage(동기 → 갑작스런 새로고침에도 남음). 정식 기록(workoutSessions)·백업과 분리.
  * 당겨서 새로고침 방지: CSS overscroll-behavior + iOS 보조 가드(최상단에서 아래로 당기는 첫 touchmove만 막음).
  * 의존: app.js · my-workout.js(_subHead·_wireReorderDrag·toast·아이콘) · workout-runner.js(routineBlocks·run) — 그 다음에 로드
@@ -178,17 +179,54 @@
       if (this.view === "today") this.renderToday(); else { this._persist(); this._updateUndoUI(); }
       this.toast(`${verb} · ${c.label}`);
     },
+    // ↶↷는 두 곳(큰 제목 줄 · 접힌 헤더)에 있다 — 같은 상태로 함께 갱신
     _updateUndoUI() {
-      const u = document.getElementById("btn-undo"), r = document.getElementById("btn-redo");
-      if (!u || !r) return;
       const cu = this.canUndo(), cr = this.canRedo();
-      u.disabled = !cu; r.disabled = !cr;
       const lu = cu ? this._hist.undo[this._hist.undo.length - 1].label : "", lr = cr ? this._hist.redo[this._hist.redo.length - 1].label : "";
-      u.setAttribute("aria-label", lu ? `실행 취소: ${lu}` : "실행 취소");
-      r.setAttribute("aria-label", lr ? `다시 실행: ${lr}` : "다시 실행");
+      document.querySelectorAll(".js-undo").forEach((b) => { b.disabled = !cu; b.setAttribute("aria-label", lu ? `실행 취소: ${lu}` : "실행 취소"); });
+      document.querySelectorAll(".js-redo").forEach((b) => { b.disabled = !cr; b.setAttribute("aria-label", lr ? `다시 실행: ${lr}` : "다시 실행"); });
     },
-    _setTodayActive(on) { document.body.classList.toggle("today-active", !!on); this._updateUndoUI(); },
-    _afterTodayRender() { this._persist(); this._updateUndoUI(); },
+    _titleTools() {
+      const svg = (d) => { const t = document.createElement("span"); t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`; return t.firstChild; };
+      return el("div", { class: "title-tools" }, [
+        el("span", { class: "live-pill js-live", hidden: "hidden" }),
+        el("button", { class: "undo-btn js-undo", type: "button", "aria-label": "실행 취소", disabled: "disabled", onclick: () => this.undo() }, [svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>')]),
+        el("button", { class: "undo-btn js-redo", type: "button", "aria-label": "다시 실행", disabled: "disabled", onclick: () => this.redo() }, [svg('<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>')]),
+      ]);
+    },
+    // 지금 보여 줄 남은 시간: 버티기/준비(수행 엔진) > 휴식 > 방금 끝난 휴식(2초)
+    _liveStatus() {
+      const r = this.run, now = Date.now();
+      if (r && r.phase === "preparing") return { cls: "prep", text: `준비 ${Math.max(1, Math.ceil((r.prepEndsAt - now) / 1000))}`, label: "준비 중" };
+      if (r && r.phase === "performing") return { cls: "run", text: this._mmss((r.endsAt - now) / 1000), label: "버티기 남은 시간" };
+      const T = window.FitlogTimer;
+      if (T.state && T.state.running) return { cls: "rest", text: T._mmss(T.remaining()), label: T.state.type === "exercise_rest" ? "다음 운동까지 휴식" : "휴식 남은 시간" };
+      if (this._restEndedAt && now - this._restEndedAt < 2500) return { cls: "ended", text: "휴식 끝", label: "휴식 끝" };
+      return null;
+    },
+    _paintLive() {
+      const st = this._liveStatus();
+      document.querySelectorAll(".js-live").forEach((n) => {
+        if (!st) { n.hidden = true; return; }
+        n.hidden = false; n.className = "live-pill js-live " + st.cls; n.textContent = st.text; n.setAttribute("aria-label", `${st.label} ${st.text}`);
+      });
+      // 다른 탭에 있을 때: 하단 "오늘" 탭 라벨이 남은 시간(휴식·버티기)
+      const tab = document.querySelector('.tab[data-view="today"]'), lbl = tab && tab.querySelector(".tab-label");
+      if (lbl) {
+        const on = !!st && this.view !== "today" && st.cls !== "ended";
+        tab.classList.toggle("live", on); lbl.textContent = on ? st.text : "오늘";
+      }
+    },
+    // 큰 제목이 화면 위로 지나가면 접힌 헤더를 보여 준다(iOS 큰 제목 방식)
+    _syncMini() {
+      const title = this.view === "today" && document.querySelector("#view-today .title-row");
+      const on = !!title && document.body.classList.contains("today-active") && this.todayMode !== "reorder" && title.getBoundingClientRect().bottom < 8;
+      document.body.classList.toggle("mini-on", on);
+      const t = document.getElementById("tm-title");
+      if (t && this.session) t.textContent = (this.template(this.session.templateId) || {}).name || "";
+    },
+    _setTodayActive(on) { document.body.classList.toggle("today-active", !!on); this._updateUndoUI(); this._paintLive(); this._syncMini(); },
+    _afterTodayRender() { this._persist(); this._updateUndoUI(); this._paintLive(); this._syncMini(); },
 
     // 스낵바: [되돌리기]는 같은 실행 취소 스택의 undo()를 부른다(그 동작이 아직 맨 위일 때만)
     snack(msg, cmd) {
@@ -364,24 +402,16 @@
     },
   });
 
-  // 실행 취소/다시 실행 버튼(상단 상태 바)
-  document.getElementById("btn-undo").addEventListener("click", () => App.undo());
-  document.getElementById("btn-redo").addEventListener("click", () => App.redo());
+  // 접힌 헤더의 ↶↷ + 스크롤에 따라 접힌 헤더 표시
+  document.querySelectorAll("#today-mini .js-undo").forEach((b) => b.addEventListener("click", () => App.undo()));
+  document.querySelectorAll("#today-mini .js-redo").forEach((b) => b.addEventListener("click", () => App.redo()));
+  let miniRaf = 0;
+  window.addEventListener("scroll", () => { if (!miniRaf) miniRaf = requestAnimationFrame(() => { miniRaf = 0; App._syncMini(); }); }, { passive: true });
 
   // 앱을 떠나거나 숨길 때도 한 번 더 저장(입력 중이던 메모·이름 포함)
   const flush = () => { try { App._persist(); } catch (_) {} };
   window.addEventListener("pagehide", flush);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
-
-  // 상태 바가 나타나거나 사라질 때(다른 화면에서 휴식 시작·종료) 보던 위치가 밀리지 않게 스크롤 보정
-  const sb = document.getElementById("status-bar");
-  if (sb && "ResizeObserver" in window) {
-    let lastH = sb.offsetHeight;
-    new ResizeObserver(() => {
-      const h = sb.offsetHeight, d = h - lastH; lastH = h;
-      if (d && window.scrollY > 0) window.scrollBy(0, d);
-    }).observe(sb);
-  }
 
   // 당겨서 새로고침 방지(iOS 보조 가드). CSS overscroll-behavior가 1차.
   // 문서가 맨 위이고, 손가락 아래 안쪽 스크롤 영역이 맨 위이며, 첫 움직임이 아래 방향 세로일 때만 그 제스처를 막는다.

@@ -111,26 +111,35 @@ input { font-family: inherit; }
 .link { background: none; border: 0; color: var(--text-faint); font-size: 13px; padding: 8px 4px; }
 .link.danger { color: var(--danger); }
 
-/* ---------- 상단 상태 바 (v38): 휴식 타이머 + 오늘 화면 실행 취소/다시 실행 ----------
-   fixed 덮개가 아니라 문서 흐름 안의 sticky → 바 높이만큼 아래 콘텐츠가 밀려 아무것도 가리지 않는다.
-   body의 safe-area 여백을 음수 margin으로 끌어올리고 같은 값을 padding으로 채워 상태 표시줄 영역까지 덮는다. */
-.status-bar { display: none; position: sticky; top: 0; z-index: 20;
-  margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 10px 0;
-  height: calc(var(--sb-h) + env(safe-area-inset-top, 0px)); align-items: center; gap: 6px;
-  background: var(--surface-2); border-bottom: 1px solid var(--border); }
-:root { --sb-h: 46px; }
-body.today-active .status-bar, .status-bar:has(#timer-bar:not([hidden])) { display: flex; }
-.sb-undo { display: none; gap: 2px; flex: 0 0 auto; }
-body.today-active .sb-undo { display: flex; }
-.sb-btn { width: 44px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--text); padding: 0; }
-.sb-btn svg { width: 22px; height: 22px; }
-.sb-btn:active:not(:disabled) { background: var(--surface); }
-.sb-btn:disabled { color: var(--text-faint); opacity: 0.35; }
-.timer-bar { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 6px; }
-.timer-bar[hidden] { display: none; }
-.tb-label { font-size: 14px; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
-.tb-time { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
-.timer-bar.ended .tb-time, .timer-bar.ended .tb-label { color: var(--accent); }
+/* ---------- 휴식 타이머 · 실행 취소 표시 (v39) ----------
+   #timer-bar는 timer.js의 상태 보관용(항상 숨김). 따로 띠를 두지 않고 기존 헤더에 녹인다:
+   맨 위 = 큰 제목 줄 오른쪽(휴식 알약 + ↶↷), 스크롤 = iOS처럼 얇은 반투명 접힌 헤더, 다른 탭 = 하단 "오늘" 탭에 남은 시간. */
+.timer-bar { display: none !important; }
+.title-row { display: flex; align-items: center; gap: 6px; margin: 2px 0 12px; }
+.title-row .today-title { flex: 1 1 auto; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.title-tools { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.undo-btn { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--text-dim); padding: 0; }
+.undo-btn svg { width: 21px; height: 21px; }
+.undo-btn:active:not(:disabled) { background: var(--surface-2); }
+.undo-btn:disabled { opacity: 0.28; }
+.live-pill { font-family: var(--num); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; color: var(--accent);
+  background: rgba(74, 222, 128, 0.12); border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
+.live-pill[hidden] { display: none; }
+.live-pill.prep { color: var(--warn); background: rgba(251, 191, 36, 0.12); }
+.live-pill.ended { color: var(--text); background: var(--surface-2); font-family: inherit; }
+/* 접힌 헤더: 맨 위에선 투명하게 숨어 있다가(클릭 불가) 큰 제목이 지나가면 나타남 */
+.today-mini { position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  display: grid; grid-template-columns: 1fr minmax(0, auto) 1fr; align-items: center; gap: 8px;
+  padding: env(safe-area-inset-top, 0px) 8px 0 14px; height: calc(50px + env(safe-area-inset-top, 0px));
+  background: rgba(17, 19, 24, 0.78); -webkit-backdrop-filter: saturate(160%) blur(18px); backdrop-filter: saturate(160%) blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  opacity: 0; pointer-events: none; transition: opacity 0.16s ease; }
+body.today-active.mini-on .today-mini { opacity: 1; pointer-events: auto; }
+.tm-title { font-size: 17px; font-weight: 700; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52vw; }
+.tm-side { display: flex; align-items: center; min-width: 0; }
+.tm-right { justify-content: flex-end; gap: 2px; }
+/* 다른 탭에서 쉬는 중: 하단 "오늘" 탭 라벨이 남은 시간 */
+.tab.live .tab-label { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
 
 /* 인라인 큰 카운트다운 (활성 세트 아래) */
 .countdown { text-align: center; padding: 10px 0 2px; }
@@ -875,10 +884,7 @@ button.gl-row:disabled { opacity: 1; }
 .sel-row[aria-pressed="true"] .sel-box { box-shadow: inset 0 0 0 11px var(--accent); }
 .sel-row.disabled { opacity: 0.45; }
 .ro-group .gl-main { color: var(--accent); }
-/* 상태 바가 보일 때 내 운동·운동 찾기·오늘(순서 변경)의 sticky 헤더는 상태 바 바로 아래에 붙는다(v38: 상태 바가 문서 흐름에 있으므로 여백 보정은 불필요). */
-body:has(#timer-bar:not([hidden])) .sub-head,
-body:has(#timer-bar:not([hidden])) .fx-top,
-body.today-active .sub-head { top: calc(env(safe-area-inset-top, 0px) + var(--sb-h)); }
+
 
 /* ===================================================================
    오늘 운동 세션 UX 안정화 (v38)

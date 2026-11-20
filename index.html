@@ -16,14 +16,16 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- 상단 상태 바 (v38): 문서 흐름 안의 sticky — 높이가 레이아웃에 반영돼 콘텐츠를 가리지 않는다.
-       휴식 타이머(동작 시) + 오늘 화면의 실행 취소/다시 실행. 타이머 표시는 timer.js가 #timer-bar만 제어. -->
-  <div id="status-bar" class="status-bar">
-    <div class="sb-undo">
-      <button id="btn-undo" class="sb-btn" type="button" aria-label="실행 취소" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
-      <button id="btn-redo" class="sb-btn" type="button" aria-label="다시 실행" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+  <!-- 휴식 타이머 상태 보관용(보이지 않음): timer.js가 hidden·시간을 갱신한다. 화면 표시는 오늘 헤더 · 접힌 헤더 · 하단 "오늘" 탭(v39). -->
+  <div id="timer-bar" class="timer-bar" hidden><span id="timer-bar-time">00:00</span></div>
+  <!-- 오늘 화면 접힌 헤더(v39): iOS 큰 제목처럼 맨 위에선 숨어 있다가, 스크롤로 제목이 지나가면 얇은 반투명 바로 나타난다 -->
+  <div id="today-mini" class="today-mini">
+    <div class="tm-side"><span class="live-pill js-live" hidden></span></div>
+    <div id="tm-title" class="tm-title"></div>
+    <div class="tm-side tm-right">
+      <button class="undo-btn js-undo" type="button" aria-label="실행 취소" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="undo-btn js-redo" type="button" aria-label="다시 실행" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     </div>
-    <div id="timer-bar" class="timer-bar" role="timer" aria-live="off" hidden><span id="timer-bar-label" class="tb-label">휴식 중</span><span id="timer-bar-time" class="tb-time">00:00</span></div>
   </div>
 
   <!-- 화면 유지용 무음 루프 video (타이머 동안 재생) — CLAUDE §5.2 -->

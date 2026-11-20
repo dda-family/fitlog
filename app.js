@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v38";
+const APP_VERSION = "v39";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -100,15 +100,15 @@ const App = {
   },
   wireTimerHooks() {
     const T = window.FitlogTimer;
-    T.onTick = (ms, st) => {
+    T.onTick = (ms) => {
       const cd = document.getElementById("inline-cd-num"); if (cd) cd.textContent = T._mmss(ms);
-      const lb = document.getElementById("timer-bar-label"); if (lb && st) lb.textContent = st.type === "exercise_rest" ? "다음 운동까지 휴식" : "휴식 중";
+      this._paintLive();   // 헤더 알약 · 접힌 헤더 · 하단 "오늘" 탭
     };
     T.onEnd = () => {
-      const lb = document.getElementById("timer-bar-label"); if (lb) lb.textContent = "휴식 끝";
+      this._restEndedAt = Date.now(); this._paintLive();
       const wrap = document.getElementById("inline-cd"), num = document.getElementById("inline-cd-num"), label = document.getElementById("inline-cd-label");
       if (wrap) wrap.classList.add("ended"); if (num) num.textContent = "00:00"; if (label) label.textContent = "휴식 종료 · 다음 세트 준비";
-      setTimeout(() => { this.activeTimerExerciseId = null; const bar = document.getElementById("timer-bar"); if (bar) bar.hidden = true; if (this.view === "today") this.renderToday(); }, 2000);
+      setTimeout(() => { this.activeTimerExerciseId = null; this._restEndedAt = 0; const bar = document.getElementById("timer-bar"); if (bar) bar.hidden = true; this._paintLive(); if (this.view === "today") this.renderToday(); }, 2000);
     };
   },
 
@@ -275,7 +275,7 @@ const App = {
     this._disposeExViewer();   // 운동 상세 3D 뷰어 정리
     document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== `view-${view}`));
     document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.view === view ? "true" : "false"));
-    if (view !== "today") this._setTodayActive(false);   // 실행 취소 버튼은 오늘 화면에서만
+    if (view !== "today") this._setTodayActive(false);   // 실행 취소·접힌 헤더는 오늘 화면에서만(다른 탭에선 "오늘" 탭에 남은 시간)
     if (view === "today") { this._ensureSessionResults(); this.renderToday(); }
     else if (view === "settings") this.renderSettings();
     else if (view === "my") this.enterMy(opts);
@@ -317,7 +317,8 @@ const App = {
         el("button", { class: "btn btn-sm add-ex", onclick: () => this.addExtra() }, "＋ 운동 추가"),
         el("button", { class: "btn btn-sm add-ex", ...(this.ended || this.run || this._movableKeys().length < 2 ? { disabled: "disabled" } : {}), onclick: () => this.openTodayReorder() }, "순서 변경"),
       ])]),
-      el("div", { class: "today-title", text: tpl.name }),
+      // 큰 제목 줄: 오른쪽에 휴식·버티기 남은 시간 + 실행 취소/다시 실행(iOS 큰 제목 옆 버튼처럼). 스크롤하면 접힌 헤더가 같은 것을 보여 준다.
+      el("div", { class: "title-row" }, [el("div", { class: "today-title", text: tpl.name }), this.ended ? null : this._titleTools()].filter(Boolean)),
       el("div", { class: "today-actions" }, [el("div", { class: "select-wrap" }, [select]), el("button", { class: "btn btn-sm btn-ghost", onclick: () => window.FitlogTimer.testSound() }, "🎧 알림 테스트")]),
     ]));
 

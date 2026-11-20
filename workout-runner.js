@@ -344,9 +344,11 @@
       if (changed) this._renderRun(); else this._paintRun(now);
     },
     _paintRun(now) {
-      const r = this.run, n = document.getElementById("run-num"); if (!r || !n) return;
+      const r = this.run, n = document.getElementById("run-num"); if (!r) return;
+      if (!n) { if (this._paintLive) this._paintLive(); return; }
       if (r.phase === "preparing") n.textContent = String(Math.max(1, Math.ceil((r.prepEndsAt - now) / 1000)));
       else if (r.phase === "performing") n.textContent = this._mmss((r.endsAt - now) / 1000);
+      if (this._paintLive) this._paintLive();   // 헤더 알약·접힌 헤더에도 버티기 남은 시간
     },
     // 한 단계 기록(좌우 운동은 오른쪽까지 끝나야 세트 1개로 저장)
     _recordDuration(st, sec) {
