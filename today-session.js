@@ -7,6 +7,7 @@
  * 실행 취소/다시 실행: 경로 패치 저널 — 명령 = { id, label, ps: [{ p: 세션 기준 경로, b: 전, a: 후 }], fx: { rest } }
  *   경로 조각 "#<id>"는 배열에서 exercise.id가 같은 원소(오늘 추가 운동)를 가리킨다. 전체 상태 복제는 하지 않는다.
  * 남은 시간·↶↷ 표시: 따로 띠 없이 큰 제목 줄 + 스크롤 시 접힌 헤더(#today-mini) + 다른 탭에선 하단 "오늘" 탭(v39).
+ *   접힌 헤더 오른쪽 끝 ＋ = 운동 추가(v40).
  * 진행 중 세션 임시 저장: localStorage(동기 → 갑작스런 새로고침에도 남음). 정식 기록(workoutSessions)·백업과 분리.
  * 당겨서 새로고침 방지: CSS overscroll-behavior + iOS 보조 가드(최상단에서 아래로 당기는 첫 touchmove만 막음).
  * 의존: app.js · my-workout.js(_subHead·_wireReorderDrag·toast·아이콘) · workout-runner.js(routineBlocks·run) — 그 다음에 로드
@@ -405,6 +406,8 @@
   // 접힌 헤더의 ↶↷ + 스크롤에 따라 접힌 헤더 표시
   document.querySelectorAll("#today-mini .js-undo").forEach((b) => b.addEventListener("click", () => App.undo()));
   document.querySelectorAll("#today-mini .js-redo").forEach((b) => b.addEventListener("click", () => App.redo()));
+  // 스크롤해 내려온 상태에서도 바로 운동 추가(v40) — 맨 위 "＋ 운동 추가"와 같은 동작
+  document.querySelectorAll("#today-mini .js-mini-add").forEach((b) => b.addEventListener("click", () => App.addExtra()));
   let miniRaf = 0;
   window.addEventListener("scroll", () => { if (!miniRaf) miniRaf = requestAnimationFrame(() => { miniRaf = 0; App._syncMini(); }); }, { passive: true });
 

@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v39";
+const APP_VERSION = "v40";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -610,7 +610,9 @@ const App = {
       this.session.extras.push({ guide: { exerciseId: id, targetWeight: null, targetSets: 3, minReps: 1, maxReps: 999, optional: true, warmupSuggestions: [], notes: "" }, exercise: { id, name: "", sideMode: "total", warmupEnabled: false }, res: this.newRes() });
       this._syncOrder();
     });
-    const inputs = document.querySelectorAll(".ex-name-input"); if (inputs.length) inputs[inputs.length - 1].focus();
+    // 새 카드로 이동(접힌 헤더에 가리지 않게 가운데로) + 이름 입력 포커스
+    const inputs = document.querySelectorAll(".ex-name-input"), inp = inputs[inputs.length - 1];
+    if (inp) { inp.focus({ preventScroll: true }); (inp.closest(".card") || inp).scrollIntoView({ block: "center" }); }
   },
   bump(input, delta, min) {
     const cur = input.value === "" ? 0 : Number(input.value);

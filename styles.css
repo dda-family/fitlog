@@ -138,6 +138,9 @@ body.today-active.mini-on .today-mini { opacity: 1; pointer-events: auto; }
 .tm-title { font-size: 17px; font-weight: 700; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52vw; }
 .tm-side { display: flex; align-items: center; min-width: 0; }
 .tm-right { justify-content: flex-end; gap: 2px; }
+.today-mini .undo-btn { width: 36px; }
+.tm-add { color: var(--accent); }
+.tm-add svg { width: 22px; height: 22px; }
 /* 다른 탭에서 쉬는 중: 하단 "오늘" 탭 라벨이 남은 시간 */
 .tab.live .tab-label { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
 
