@@ -7,7 +7,7 @@
  * 실행 취소/다시 실행: 경로 패치 저널 — 명령 = { id, label, ps: [{ p: 세션 기준 경로, b: 전, a: 후 }], fx: { rest } }
  *   경로 조각 "#<id>"는 배열에서 exercise.id가 같은 원소(오늘 추가 운동)를 가리킨다. 전체 상태 복제는 하지 않는다.
  * 남은 시간·↶↷ 표시: 따로 띠 없이 큰 제목 줄 + 스크롤 시 접힌 헤더(#today-mini) + 다른 탭에선 하단 "오늘" 탭(v39).
- *   접힌 헤더 오른쪽 끝 ＋ = 운동 추가(v40).
+ *   접힌 헤더 오른쪽 ⇅ = 순서 변경, ＋ = 운동 추가(v40·v41).
  * 진행 중 세션 임시 저장: localStorage(동기 → 갑작스런 새로고침에도 남음). 정식 기록(workoutSessions)·백업과 분리.
  * 당겨서 새로고침 방지: CSS overscroll-behavior + iOS 보조 가드(최상단에서 아래로 당기는 첫 touchmove만 막음).
  * 의존: app.js · my-workout.js(_subHead·_wireReorderDrag·toast·아이콘) · workout-runner.js(routineBlocks·run) — 그 다음에 로드
@@ -225,9 +225,14 @@
       document.body.classList.toggle("mini-on", on);
       const t = document.getElementById("tm-title");
       if (t && this.session) t.textContent = (this.template(this.session.templateId) || {}).name || "";
+      const ro = document.querySelector("#today-mini .js-mini-reorder");
+      if (ro && this.session) ro.disabled = !!(this.ended || this.run || this._movableKeys().length < 2);
     },
     _setTodayActive(on) { document.body.classList.toggle("today-active", !!on); this._updateUndoUI(); this._paintLive(); this._syncMini(); },
-    _afterTodayRender() { this._persist(); this._updateUndoUI(); this._paintLive(); this._syncMini(); },
+    _afterTodayRender() {
+      if (this.todayMode !== "reorder" && this._reorderY != null) { window.scrollTo(0, this._reorderY); this._reorderY = null; }
+      this._persist(); this._updateUndoUI(); this._paintLive(); this._syncMini();
+    },
 
     // 스낵바: [되돌리기]는 같은 실행 취소 스택의 undo()를 부른다(그 동작이 아직 맨 위일 때만)
     snack(msg, cmd) {
@@ -284,7 +289,7 @@
     // ───────── 오늘 순서 변경(오늘 세션만 — 루틴 순서는 그대로) ─────────
     openTodayReorder() {
       if (this.run || this._movableKeys().length < 2) return;
-      this.todayMode = "reorder"; this._reorderDraft = this._movableKeys();
+      this.todayMode = "reorder"; this._reorderDraft = this._movableKeys(); this._reorderY = window.scrollY;   // 끝나면 보던 위치로
       document.querySelectorAll(".app-snack").forEach((n) => n.remove());
       this.renderToday(); window.scrollTo(0, 0);
     },
@@ -408,6 +413,7 @@
   document.querySelectorAll("#today-mini .js-redo").forEach((b) => b.addEventListener("click", () => App.redo()));
   // 스크롤해 내려온 상태에서도 바로 운동 추가(v40) — 맨 위 "＋ 운동 추가"와 같은 동작
   document.querySelectorAll("#today-mini .js-mini-add").forEach((b) => b.addEventListener("click", () => App.addExtra()));
+  document.querySelectorAll("#today-mini .js-mini-reorder").forEach((b) => b.addEventListener("click", () => App.openTodayReorder()));
   let miniRaf = 0;
   window.addEventListener("scroll", () => { if (!miniRaf) miniRaf = requestAnimationFrame(() => { miniRaf = 0; App._syncMini(); }); }, { passive: true });
 

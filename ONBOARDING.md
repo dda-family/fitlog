@@ -26,9 +26,9 @@ GitHub: https://github.com/dda-family/fitlog
 
 ## 3. 현재 버전
 
-- APP_VERSION (app.js): v40
-- CACHE_VERSION (service-worker.js): fitlog-v40
-- 다음 수정 시 둘 다 v41로 올릴 것
+- APP_VERSION (app.js): v41
+- CACHE_VERSION (service-worker.js): fitlog-v41
+- 다음 수정 시 둘 다 v42로 올릴 것
 
 ---
 
