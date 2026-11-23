@@ -229,6 +229,61 @@
       if (ro && this.session) ro.disabled = !!(this.ended || this.run || this._movableKeys().length < 2);
     },
     _setTodayActive(on) { document.body.classList.toggle("today-active", !!on); this._updateUndoUI(); this._paintLive(); this._syncMini(); },
+    // ───────── 화면 위치 유지(v42) ─────────
+    // 오늘 화면은 다시 그릴 때 통째로 비웠다가 채운다. 그 사이 레이아웃을 읽으면(접힌 헤더 계산 등) 문서가 짧아져
+    // 스크롤이 0으로 잘린다 → "세트 완료 = 맨 위로" 버그. 다시 그리기 전 기준 카드(data-key)와 그 화면 위치를
+    // 기억했다가, 다 그린 뒤 같은 카드가 같은 자리에 오도록 되돌린다. 텍스트·운동명으로 찾지 않는다.
+    _viewBand() {
+      const mini = document.getElementById("today-mini"), tab = document.getElementById("tabbar");
+      return { top: mini ? mini.getBoundingClientRect().height : 0, bottom: tab ? tab.getBoundingClientRect().top : window.innerHeight };
+    },
+    _todayCards(root) { return [...root.querySelectorAll(":scope > [data-key]")]; },
+    _captureAnchor(root) {
+      const a = { y: window.scrollY };
+      if (this.view !== "today" || !root || root.hidden) return a;
+      const band = this._viewBand(), cards = this._todayCards(root);
+      const inBand = (n) => { const r = n.getBoundingClientRect(); return r.bottom > band.top && r.top < band.bottom; };
+      // 방금 사용자가 누른 카드(1.5초 안) — 그 카드가 이번 동작의 주인공
+      a.intent = this._tapKey && Date.now() - (this._tapAt || 0) < 1500 ? this._tapKey : null;
+      const own = a.intent && cards.find((c) => c.dataset.key === a.intent);
+      const stable = own && inBand(own) ? own : cards.find((c) => c.getBoundingClientRect().bottom > band.top);
+      if (stable) { a.key = stable.dataset.key; a.top = stable.getBoundingClientRect().top; }
+      return a;
+    },
+    _restoreAnchor(root, a) {
+      if (!a) return;
+      window.scrollTo(0, a.y);
+      const find = (k) => this._todayCards(root).find((c) => c.dataset.key === k);
+      const n = a.key && find(a.key);
+      if (n) { const d = n.getBoundingClientRect().top - a.top; if (Math.abs(d) > 1) window.scrollBy(0, d); }
+      // 누른 카드는 다음 입력 위치(다음 세트 줄·수행 패널)가 화면 안에 들어오게 최소한만 이동
+      const own = a.intent && find(a.intent);
+      if (own) { const act = own.querySelector(".set-row .set-complete"); this._ensureVisible(act ? act.closest(".set-row") : (own.querySelector("#inline-cd") || own.querySelector(".run-panel"))); }
+    },
+    _ensureVisible(n) {
+      if (!n) return;
+      const band = this._viewBand(), r = n.getBoundingClientRect(), pad = 8;
+      if (r.top < band.top + pad) window.scrollBy(0, r.top - band.top - pad);
+      else if (r.bottom > band.bottom - pad) window.scrollBy(0, Math.min(r.bottom - band.bottom + pad, r.top - band.top - pad));
+    },
+    // 휴식이 끝나 다시 그릴 때: 방금 끝낸 카드가 완료 상태이고 화면에 보이고 있었다면 다음 할 운동 카드를 보여 준다.
+    // (휴식 시작 순간엔 움직이지 않음 — 방금 기록한 내용을 확인할 수 있게)
+    _restEndRender() {
+      const root = document.getElementById("view-today");
+      const from = document.getElementById("inline-cd"), card = from && from.closest("[data-key]");
+      const band = this._viewBand();
+      const wasVisible = !!card && (() => { const r = card.getBoundingClientRect(); return r.bottom > band.top && r.top < band.bottom; })();
+      const fromKey = card && card.dataset.key;
+      this.renderToday();
+      if (!fromKey || !wasVisible) return;
+      const cards = this._todayCards(root), i = cards.findIndex((c) => c.dataset.key === fromKey);
+      if (i < 0 || !cards[i].classList.contains("done")) return;
+      const next = cards.slice(i + 1).find((c) => !c.classList.contains("done") && !c.classList.contains("skipped"));
+      if (!next) return;
+      const r = next.getBoundingClientRect();
+      if (r.top >= band.top && r.top < band.bottom - 160) return;   // 이미 다음 카드 머리가 잘 보임
+      window.scrollTo({ top: window.scrollY + r.top - band.top - 8, behavior: "smooth" });
+    },
     _afterTodayRender() {
       if (this.todayMode !== "reorder" && this._reorderY != null) { window.scrollTo(0, this._reorderY); this._reorderY = null; }
       this._persist(); this._updateUndoUI(); this._paintLive(); this._syncMini();
@@ -414,6 +469,9 @@
   // 스크롤해 내려온 상태에서도 바로 운동 추가(v40) — 맨 위 "＋ 운동 추가"와 같은 동작
   document.querySelectorAll("#today-mini .js-mini-add").forEach((b) => b.addEventListener("click", () => App.addExtra()));
   document.querySelectorAll("#today-mini .js-mini-reorder").forEach((b) => b.addEventListener("click", () => App.openTodayReorder()));
+  // 오늘 화면에서 누른 카드 기억(화면 위치 유지의 기준, v42) — 버튼 핸들러보다 먼저(캡처 단계)
+  const vt = document.getElementById("view-today");
+  if (vt) vt.addEventListener("click", (e) => { const c = e.target.closest && e.target.closest("[data-key]"); if (c && c.parentElement === vt) { App._tapKey = c.dataset.key; App._tapAt = Date.now(); } }, true);
   let miniRaf = 0;
   window.addEventListener("scroll", () => { if (!miniRaf) miniRaf = requestAnimationFrame(() => { miniRaf = 0; App._syncMini(); }); }, { passive: true });
 

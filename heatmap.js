@@ -101,10 +101,12 @@
   function toContract(sessions, exDefsById, userMap) {
     const SC = window.FitlogCatalog.SESSION_CARDIO_CATALOG_ID;
     return (sessions || []).map((s) => {
-      const exercises = [];
+      const exercises = [], seen = {};
       (s.exerciseResults || []).forEach((r) => {
         const exDef = exDefsById[r.exerciseId];
-        const recordId = s.id + "::" + r.exerciseId;
+        // 같은 세션에 같은 운동이 두 번(루틴 + 오늘 추가) 있어도 둘 다 집계되게 두 번째부터 번호를 붙인다(v42)
+        const dup = seen[r.exerciseId] = (seen[r.exerciseId] || 0) + 1;
+        const recordId = s.id + "::" + r.exerciseId + (dup > 1 ? "#" + dup : "");
         if (r.kind === "cardio") {
           exercises.push({ recordId, catalogId: effectiveCatalogId(r.exerciseId, exDef, userMap), exerciseType: "cardio", status: r.cardioActual ? "completed" : "not_started", durationSeconds: r.cardioActual ? (Number(r.cardioActual.durationMinutes) || 0) * 60 : 0 });
         } else {

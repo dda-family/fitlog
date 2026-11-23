@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v41";
+const APP_VERSION = "v42";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -108,7 +108,7 @@ const App = {
       this._restEndedAt = Date.now(); this._paintLive();
       const wrap = document.getElementById("inline-cd"), num = document.getElementById("inline-cd-num"), label = document.getElementById("inline-cd-label");
       if (wrap) wrap.classList.add("ended"); if (num) num.textContent = "00:00"; if (label) label.textContent = "휴식 종료 · 다음 세트 준비";
-      setTimeout(() => { this.activeTimerExerciseId = null; this._restEndedAt = 0; const bar = document.getElementById("timer-bar"); if (bar) bar.hidden = true; this._paintLive(); if (this.view === "today") this.renderToday(); }, 2000);
+      setTimeout(() => { this.activeTimerExerciseId = null; this._restEndedAt = 0; const bar = document.getElementById("timer-bar"); if (bar) bar.hidden = true; this._paintLive(); if (this.view === "today") this._restEndRender(); }, 2000);
     };
   },
 
@@ -139,22 +139,102 @@ const App = {
       cardio: { durationMinutes: g.targetDurationMinutes != null ? g.targetDurationMinutes : 30, speedKmh: g.targetSpeedKmh != null ? g.targetSpeedKmh : 4.8, incline: g.targetIncline != null ? g.targetIncline : 12 } };
   },
 
+  // 최근 실제 기록(v42): 저장된 기록(workoutSessions)이 유일한 원천. 여기선 최신순 목록만 메모리에 들고
+  // 운동별 "가장 최근 실제 수행"을 파생(lastMap)한다 — 별도 DB·캐시 저장 없음(백업 복원 후에도 다시 계산).
   async loadLastResults(templateId) {
-    this.lastMap = {};
+    this.lastMap = {}; this._recentSessions = []; this._recentMemo = {};
     if (!this.dbReady) return;
     try {
-      const sessions = await window.FitlogDB.DB.recentSessions();
-      for (const g of this.guidesOf(templateId)) {
-        for (const s of sessions) {
-          const r = (s.exerciseResults || []).find((x) => x.exerciseId === g.exerciseId);
-          if (!r) continue;
-          if (r.kind === "cardio") { if (r.cardioActual) { this.lastMap[g.exerciseId] = { cardio: r.cardioActual, date: s.date }; break; } continue; }
-          const work = (r.sets || []).filter((x) => x.setType === "work");
-          if (r.measurementType === "duration") { if (work.length) { this.lastMap[g.exerciseId] = { durText: work.map((w) => this.fmtDurSet(w)).join(" / "), date: s.date }; break; } continue; }
-          if (work.length) { this.lastMap[g.exerciseId] = { weight: work[0].weight, reps: work.map((w) => w.reps), date: s.date }; break; }
-        }
-      }
+      this._recentSessions = await window.FitlogDB.DB.recentSessions();
+      for (const g of this.guidesOf(templateId)) { const lm = this.recentFor(g.exerciseId); if (lm) this.lastMap[g.exerciseId] = lm; }
     } catch (e) { console.warn(e); }
+  },
+  // 운동 ID 기준 가장 최근 실제 수행(루틴과 무관). 생략한 기록·본세트 없는 기록은 건너뜀, 워밍업 제외.
+  // legacyName: 오늘 직접 추가한 운동의 옛 기록(v41 이전 "extra-N" ID)은 이름으로만 이어 볼 수 있어 그때만 이름 비교.
+  recentFor(exId, legacyName) {
+    const ln = this._normName(legacyName);
+    const mk = exId + "|" + ln;
+    if (this._recentMemo && mk in this._recentMemo) return this._recentMemo[mk];
+    let out = null;
+    const hit = (r) => (exId && r.exerciseId === exId) || (!!ln && r.adhoc && /^extra-/.test(r.exerciseId) && this._normName(r.exerciseName) === ln);
+    for (const s of this._recentSessions || []) {
+      const r = (s.exerciseResults || []).find(hit);
+      if (!r) continue;
+      if (r.kind === "cardio") { if (r.cardioActual) { out = { cardio: r.cardioActual, date: s.date }; break; } continue; }
+      if (r.status === "skipped") continue;
+      const work = (r.sets || []).filter((x) => x.setType === "work");
+      if (!work.length) continue;
+      if (r.measurementType === "duration") { out = { durText: work.map((w) => this.fmtDurSet(w)).join(" / "), date: s.date }; break; }
+      out = { weight: work[0].weight, reps: work.map((w) => w.reps), sets: work.map((w) => ({ weight: w.weight, reps: w.reps })), date: s.date };
+      break;
+    }
+    (this._recentMemo || (this._recentMemo = {}))[mk] = out;
+    return out;
+  },
+  // 오늘 카드의 "지난번": 루틴 운동은 lastMap, 오늘 직접 추가한 운동은 이름으로 찾은 운동 ID(_extraLink)
+  lmOf(exId) {
+    if (this.lastMap[exId]) return this.lastMap[exId];
+    const x = this.session && (this.session.extras || []).find((e) => e.exercise.id === exId);
+    if (!x) return this.recentFor(exId);   // 루틴 편집으로 늦게 들어온 운동도 최근 기록 사용
+    const link = this._extraLink(x.exercise);
+    return link ? this.recentFor(link.id, x.exercise.name) : null;
+  },
+  // 세트 기본값(v42): 최근 실제 기록의 세트별 패턴 > 가이드. 세트 수가 더 많으면 최근 마지막 세트 값.
+  // 이번 세션에서 직전 세트를 최근 패턴과 다르게 했으면(중량·횟수 각각) 그 값을 이어 간다.
+  setDefault(lm, guide, i, doneSets) {
+    const rs = lm && lm.sets && lm.sets.length ? lm.sets : null;
+    const at = (k) => rs[Math.min(Math.max(k, 0), rs.length - 1)];
+    const prev = doneSets && doneSets.length ? doneSets[doneSets.length - 1] : null;
+    let weight = rs ? at(i).weight : (lm && lm.weight != null ? lm.weight : (guide && guide.targetWeight != null ? guide.targetWeight : null));
+    let reps = rs ? at(i).reps : (guide ? guide.minReps : 10);
+    if (prev) {
+      const rp = rs ? at(i - 1) : null;
+      if (!rp || prev.weight !== rp.weight) weight = prev.weight;
+      if (!rp || prev.reps !== rp.reps) reps = prev.reps;
+    }
+    return { weight, reps };
+  },
+  // 지난번 표시: 중량이 같으면 "40kg · 10 / 10 / 8", 다르면 "40×10 / 42.5×8"
+  lastText(ex, lm) {
+    if (!lm) return "지난번  기록 없음";
+    if (lm.durText) return `지난번  ${lm.durText}`;
+    const sets = lm.sets || (lm.reps || []).map((r) => ({ weight: lm.weight, reps: r }));
+    const same = sets.every((s) => s.weight === sets[0].weight);
+    return same ? `지난번  ${this.weightText(ex, sets[0] && sets[0].weight)} · ${sets.map((s) => s.reps).join(" / ")}`
+      : `지난번  ${sets.map((s) => `${s.weight == null ? "-" : s.weight}×${s.reps}`).join(" / ")}`;
+  },
+  _normName(s) { return String(s || "").replace(/\s+/g, "").toLowerCase(); },
+  // 오늘 직접 추가한 운동의 이름 → 안정적인 운동 ID(v42). 내 운동 이름 > 카탈로그 이름·별칭. 없으면 null(저장 때 새 운동으로 등록).
+  _extraLink(exObj) {
+    const n = this._normName(exObj && exObj.name);
+    if (!n) return null;
+    const app = (this.exercises || []).find((e) => e.kind !== "cardio" && e.category !== "cardio" && this._normName(e.name) === n);
+    if (app) return { id: app.id, def: app };
+    const c = this._catExercises().find((x) => x.exerciseType !== "cardio" && [x.label_ko, ...(x.aliases || [])].some((a) => this._normName(a) === n));
+    if (c) { const ex = this.findAppExerciseByCatalogId(c.id); return ex ? { id: ex.id, def: ex } : { id: c.id, catId: c.id, def: { sideMode: this._sideModeFromCatalog(c) } }; }
+    return null;
+  },
+  // 저장 직전: 오늘 추가한 운동마다 안정적인 운동 ID 확보(카탈로그 운동은 앱 운동으로, 처음 보는 이름은 내 운동으로 등록).
+  // 루틴(가이드)은 건드리지 않는다. 반환: { 오늘 임시 ID → 저장용 운동 ID }
+  async _finalizeExtraIds() {
+    const map = {};
+    if (!this.dbReady) return map;
+    let added = false;
+    for (const it of this.items().filter((i) => i.isExtra)) {
+      const name = (it.exercise.name || "").trim();
+      if (!name) continue;
+      const link = this._extraLink(it.exercise);
+      if (link && !link.catId) { map[it.exercise.id] = link.id; continue; }
+      if (link && link.catId) { const ex = await this.ensureAppExerciseForCatalog(link.catId); if (ex) { map[it.exercise.id] = ex.id; added = true; } continue; }
+      let id = "ex-" + Date.now();
+      for (let k = 2; this.exercise(id) || Object.values(map).includes(id); k++) id = "ex-" + Date.now() + "-" + k;
+      const ex = { id, name, category: "custom", unit: "kg", sideMode: "total", warmupEnabled: false, active: true, createdFrom: "today" };
+      await window.FitlogDB.DB.put("exercises", ex);
+      this.exercises = [...(this.exercises || []), ex];   // 같은 저장 안에서 같은 이름 재사용
+      map[it.exercise.id] = id; added = true;
+    }
+    if (added) await this.reloadDefs();
+    return map;
   },
 
   template(id) { return (this.templates || []).find((t) => t.id === id); },
@@ -296,7 +376,9 @@ const App = {
 
   // ---------------- 오늘 ----------------
   renderToday() {
-    const root = document.getElementById("view-today"); root.textContent = "";
+    const root = document.getElementById("view-today");
+    const anchor = this._captureAnchor(root);   // 다시 그린 뒤 같은 카드를 같은 자리에(v42 — 세트 완료 후 맨 위로 튀지 않게)
+    root.textContent = "";
     if (this.pendingRecovery) { this._setTodayActive(false); this.renderRecovery(root); return; }   // 진행 중이던 세션 복구 선택(v38)
     if (this.todayMode === "reorder" && !this.ended) { this._setTodayActive(true); this.renderTodayReorder(root); this._afterTodayRender(); return; }
     const tpl = this.template(this.session.templateId);
@@ -327,6 +409,7 @@ const App = {
     this.renderTodayItems(root);   // 독립 운동(횟수형/시간형) · 연속 세트 블록 단위 — 오늘 순서대로
     if (this.session.cardio) root.appendChild(this.renderCardio());
     root.appendChild(el("button", { class: "btn btn-block btn-ghost", style: "margin-top:4px", onclick: () => { this.ended = true; this._resetRun(); window.FitlogTimer.cancel(); this.renderToday(); window.scrollTo(0, 0); } }, "오늘 운동 종료"));
+    this._restoreAnchor(root, anchor);
     this._afterTodayRender();   // 진행 중 세션 임시 저장 + 실행 취소 버튼 상태
   },
 
@@ -338,12 +421,19 @@ const App = {
     const card = el("div", { class: "card" + (res.skipped ? " skipped" : targetMet ? " done" : "") });
 
     let nameNode;
-    if (isExtra) nameNode = this._journalInput(el("input", { class: "ex-name-input", type: "text", value: ex.name || "", placeholder: "운동 이름 (예: 무릎모아 앉았다 일어나기)", oninput: (e) => { ex.name = e.target.value; } }), ["extras", "#" + ex.id, "exercise", "name"], "운동 이름 변경");
+    if (isExtra) {
+      nameNode = this._journalInput(el("input", { class: "ex-name-input", type: "text", value: ex.name || "", placeholder: "운동 이름 (예: 무릎모아 앉았다 일어나기)", oninput: (e) => { ex.name = e.target.value; } }), ["extras", "#" + ex.id, "exercise", "name"], "운동 이름 변경");
+      // 이름이 기존 운동과 이어지면(또는 끊기면) 지난번·기본값을 새로 보여 준다(v42). 연결이 그대로면 다시 그리지 않음.
+      const linkKey = () => { const l = this._extraLink(ex); return l ? l.id : ""; }, was = linkKey();
+      nameNode.addEventListener("change", () => { if (linkKey() !== was) this.renderToday(); });
+    }
     else nameNode = el("div", { class: "ex-name" }, [document.createTextNode(ex.name), guide.optional ? el("span", { class: "opt", text: "선택" }) : null]);
     card.appendChild(el("div", { class: "card-top" }, [nameNode, this.badgeFor(guide, ex, res)]));
 
     card.appendChild(el("div", { class: "guide-line", text: this.guideLine(ex, guide, isExtra) }));
-    if (!isExtra) { const lm = this.lastMap[ex.id]; card.appendChild(el("div", { class: "last-line", text: lm ? `지난번  ${this.weightText(ex, lm.weight)} · ${lm.reps.join(" / ")}` : "지난번  기록 없음" })); }
+    // 가이드(목표·참고)는 그대로, 지난번(실제 수행)은 따로 한 줄. 오늘 추가한 운동은 이름이 기존 운동과 같을 때만.
+    const lmc = this.lmOf(ex.id);
+    if (!isExtra || lmc) card.appendChild(el("div", { class: "last-line", text: this.lastText(ex, lmc) }));
 
     if (res.skipped) {
       card.appendChild(el("div", { class: "card-foot" }, [el("span", { class: "muted", text: "이번 운동 생략됨" }), this._footActions([
@@ -472,14 +562,15 @@ const App = {
   },
 
   renderActiveRow(guide, ex, res, i, isExtra, rp) {
-    const prev = res.workSets[res.workSets.length - 1];
-    const lm = this.lastMap[ex.id];
-    const defWeight = prev ? prev.weight : (lm && lm.weight != null ? lm.weight : (guide.targetWeight != null ? guide.targetWeight : null));
-    const defReps = prev ? prev.reps : guide.minReps;
+    const def = this.setDefault(this.lmOf(ex.id), guide, i, res.workSets);   // 최근 실제 기록 패턴 > 가이드(v42)
+    const defWeight = def.weight, defReps = def.reps;
     const isLastTarget = !isExtra && i === guide.targetSets - 1;
     // 진행 중 입력값 보존: 타이머 종료 등으로 재렌더링돼도 사용자가 조정해둔 값이 날아가지 않게
     // (res.draftAt이 현재 세트 인덱스와 일치할 때만 재사용 — 세트가 넘어가면 자연히 새 기본값으로)
-    const draft = (res.draftAt === i && res.draft) ? res.draft : { weight: defWeight, reps: defReps };
+    // 기본값이 바뀌었는데(오늘 추가 운동 이름 입력 등) 사용자가 아직 값을 건드리지 않았다면 새 기본값으로
+    const untouched = res.draft && res.draftDef && res.draft.weight === res.draftDef.weight && res.draft.reps === res.draftDef.reps;
+    const draft = (res.draftAt === i && res.draft && !(untouched && (res.draftDef.weight !== defWeight || res.draftDef.reps !== defReps))) ? res.draft : { weight: defWeight, reps: defReps };
+    if (draft !== res.draft) res.draftDef = { weight: defWeight, reps: defReps };
     res.draftAt = i; res.draft = draft;
     const btn = el("button", { class: "btn btn-block btn-primary", style: "margin-top:4px", onclick: () => this.completeSet(guide, ex, res, draft, isLastTarget, isExtra, rp) },
       isExtra ? "✓ 추가 세트 기록" : (isLastTarget ? "✓ 운동 완료 · 다음 운동 준비" : "✓ 세트 완료"));
@@ -738,11 +829,15 @@ const App = {
     ]));
   },
 
-  buildSession() {
+  // 저장 기록의 원천 = 실제 오늘 세션(items: 오늘 순서·추가·삭제·생략 반영), 루틴을 다시 읽지 않는다.
+  // extraIds: 오늘 추가한 운동의 저장용 운동 ID(_finalizeExtraIds). 없으면 오늘 임시 ID(extra-N) 그대로.
+  buildSession(extraIds) {
     const d = this.sessionDate;
     const grp = this.groupRoundsByGuide(this.session.templateId);
     const exerciseResults = this.items().map((it) => {
-      const { guide: g, exercise: ex, res } = it;
+      const { guide: g, res } = it;
+      let ex = it.exercise;
+      if (it.isExtra) { const sid = extraIds && extraIds[ex.id]; const def = sid && this.exercise(sid); ex = { ...ex, id: sid || ex.id, sideMode: (def && def.sideMode) || ex.sideMode }; }
       const group = !it.isExtra && grp[g.id] ? { group: grp[g.id] } : {};
       if (!it.isExtra && this.isDurationItem(g, ex)) {
         const lr = this.itemSides(g, ex) === "leftRight";
@@ -785,7 +880,9 @@ const App = {
   },
 
   async saveSession() {
-    const session = this.buildSession();
+    let extraIds = {};
+    try { extraIds = await this._finalizeExtraIds(); } catch (e) { console.warn("[Fitlog] 추가 운동 ID 확보 실패", e); }
+    const session = this.buildSession(extraIds);
     let savedOK = false;
     if (this.dbReady) { try { await window.FitlogDB.DB.put("workoutSessions", session); await this.loadLastResults(this.session.templateId); savedOK = true; } catch (e) { console.error("[Fitlog] 저장 실패", e); } }
     if (savedOK) { this._histReset(); this._clearSaved(); this.sessionSaved = true; }   // 정식 기록으로 저장됨 → 임시 세션·실행 취소 기록 정리
@@ -1103,11 +1200,10 @@ const App = {
           if (cat !== "cardio") byCat[cat] = (byCat[cat] || 0) + work;
         }
         if (r.status === "progression_candidate") { const ex = this.exercise(r.exerciseId); progs.add((ex && ex.name) || r.exerciseName || r.exerciseId); }
-        if (!r.adhoc) {
-          if (r.status === "completed" || r.status === "progression_candidate") done++;
-          else if (r.status === "volume_under") under++;
-          else if (r.status === "skipped" || r.status === "not_started") missed++;
-        }
+        // 오늘 추가한 운동(adhoc)도 실제 수행한 운동이므로 같은 기준으로 센다(v42)
+        if (r.status === "completed" || r.status === "progression_candidate") done++;
+        else if (r.status === "volume_under") under++;
+        else if (r.status === "skipped" || r.status === "not_started") missed++;
       });
       if (s.cardio) { cardioMin += s.cardio.durationMinutes || 0; cardioCnt++; }
     });

@@ -102,7 +102,7 @@ const AiBridge = {
       const work = (r.sets || []).filter((x) => x.setType === "work");
       const warm = (r.sets || []).filter((x) => x.setType === "warmup");
       const gid = guideIdOf(r.exerciseId);
-      s += `\n- ${gid || "(가이드없음)"} | ${exName(r.exerciseId)} [${r.status}]\n`;
+      s += `\n- ${gid || "(가이드없음)"} | ${(exercises.find((e) => e.id === r.exerciseId) || {}).name || r.exerciseName || r.exerciseId} [${r.status}]\n`;
       if (warm.length) s += `  워밍업: ${warm.map((w) => `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ")}\n`;
       s += `  실제: ${work.length ? work.map((w) => (w.durationSeconds !== undefined || w.leftSeconds !== undefined || w.rightSeconds !== undefined) ? fmtTimeSet(w) : `${w.weight == null ? "-" : w.weight}kg×${w.reps}`).join(", ") : "—"}\n`;
       if (r.notes) s += `  메모: ${r.notes}\n`;

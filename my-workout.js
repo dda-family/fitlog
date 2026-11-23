@@ -148,7 +148,7 @@
     _histRow(s) {
       const tpl = this.template(s.templateId); const name = tpl ? tpl.name : (s.templateId || "운동");
       const mdTxt = s.date.slice(5).replace("-", "/"); const wk = WEEKDAY_KO[s.weekday] || "";
-      const req = (s.exerciseResults || []).filter((r) => !r.adhoc);
+      const req = s.exerciseResults || [];   // 오늘 추가한 운동 포함(v42) — 요약 "수행 현황"과 같은 기준
       const doneN = req.filter((r) => r.status === "completed" || r.status === "progression_candidate").length;
       const hasCardio = s.cardio || (s.exerciseResults || []).some((r) => r.kind === "cardio" && r.cardioActual);
       return el("button", { class: "hist-row", onclick: () => { this.histEditEx = null; this.histCardioEdit = false; this._heatSeq++; this.renderHistoryDetail(s.id); window.scrollTo(0, 0); } }, [

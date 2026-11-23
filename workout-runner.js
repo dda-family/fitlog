@@ -93,15 +93,17 @@
       const items = this.items();
       const byGuide = new Map(items.filter((i) => !i.isExtra).map((i) => [i.guide.id, i]));
       const byExtra = new Map(items.filter((i) => i.isExtra).map((i) => [i.exercise.id, i]));
+      // 카드마다 블록 키(data-key) — 다시 그린 뒤 같은 카드를 정확히 다시 찾는 기준(화면 위치 유지, v42)
+      const put = (b, card) => { card.dataset.key = b.key; root.appendChild(card); };
       this.todayBlocks().forEach((b) => {
         if (b.type === "group") {
           const its = b.guides.map((g) => byGuide.get(g.id)).filter((it) => it && it.exercise);
-          if (its.length) root.appendChild(this.renderGroupCard(b, its));
+          if (its.length) put(b, this.renderGroupCard(b, its));
         } else if (b.type === "single") {
           const it = byGuide.get(b.guide.id); if (!it || !it.exercise) return;
-          root.appendChild(this.isDurationItem(it.guide, it.exercise) ? this.renderDurationCard(it) : this.renderCard(it));
+          put(b, this.isDurationItem(it.guide, it.exercise) ? this.renderDurationCard(it) : this.renderCard(it));
         } else {
-          const it = byExtra.get(b.extra.exercise.id); if (it) root.appendChild(this.renderCard(it));
+          const it = byExtra.get(b.extra.exercise.id); if (it) put(b, this.renderCard(it));
         }
       });
     },
@@ -114,10 +116,7 @@
       ]);
     },
     _lastDurLine(ex) {
-      const lm = this.lastMap[ex.id];
-      if (lm && lm.durText) return `지난번  ${lm.durText}`;
-      if (lm && lm.reps) return `지난번  ${this.weightText(ex, lm.weight)} · ${lm.reps.join(" / ")}`;
-      return "지난번  기록 없음";
+      return this.lastText(ex, this.lmOf(ex.id));
     },
 
     // 단독 시간형 운동 카드
@@ -243,10 +242,8 @@
       } else if (r.phase === "reps") {
         box.classList.add("reps");
         const g = this._guideOf(st.exId), res = this.session.results[st.exId];
-        const prev = res.workSets.filter((s) => s.reps !== undefined).slice(-1)[0], lm = this.lastMap[st.exId];
-        const draft = res.runDraft || (res.runDraft = {
-          weight: prev ? prev.weight : (lm && lm.weight != null ? lm.weight : (g && g.targetWeight != null ? g.targetWeight : null)),
-          reps: prev ? prev.reps : (g ? g.minReps : 10) });
+        const doneReps = res.workSets.filter((s) => s.reps !== undefined);
+        const draft = res.runDraft || (res.runDraft = this.setDefault(this.lmOf(st.exId), g, doneReps.length, doneReps));   // 최근 실제 기록 패턴(v42)
         const last = r.idx === r.steps.length - 1;
         box.appendChild(el("div", { class: "run-label", text: `${who} · ${roundTxt}` }));
         box.appendChild(el("div", { class: "set-row run-reps" }, [
