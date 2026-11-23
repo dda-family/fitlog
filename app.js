@@ -3,7 +3,7 @@
  * 정의(템플릿/운동/가이드)와 설정은 DB에서 로드(최초 실행 시 SEED로 시드). 세션은 DB에 저장.
  * 의존: FitlogDB, FitlogEval, FitlogTimer
  */
-const APP_VERSION = "v42";
+const APP_VERSION = "v43";
 
 const WEEKDAY_KO = { sun: "일", mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토" };
 const WD_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -386,7 +386,9 @@ const App = {
     const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[WD_KEYS[d.getDay()]]})`;
 
     const isToday = isoDate(d) === isoDate(new Date());
-    const dateBadge = isToday ? null : el("div", { class: "past-date-badge", text: `📅 ${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} 과거 기록 중` });
+    // 오늘이 아닌 날짜: 지난 날짜면 "과거 기록 중", 앞 날짜면 "미래 날짜 기록 중"(v43 — iOS 날짜 선택기는 max를 무시해 미래도 고를 수 있음)
+    const isFuture = isoDate(d) > isoDate(new Date());
+    const dateBadge = isToday ? null : el("div", { class: "past-date-badge", text: `📅 ${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} ${isFuture ? "미래 날짜 기록 중" : "과거 기록 중"}` });
     const dateBtn = el("button", { class: "today-date-btn", "aria-label": "날짜 변경", onclick: () => this.openDateModal() },
       [document.createTextNode(dateStr), el("span", { class: "edit-hint", text: " ✎" })]);
 
@@ -767,7 +769,7 @@ const App = {
     const sheet = el("div", { class: "modal-sheet" });
 
     const title = el("div", { class: "modal-title", text: "날짜 선택" });
-    const dateIn = el("input", { type: "date", class: "range-date", value: isoDate(this.sessionDate), max: isoDate(new Date()) });
+    const dateIn = el("input", { type: "date", class: "range-date", value: isoDate(this.sessionDate) });   // 미래 날짜도 선택 가능(v43, 사용자 결정)
     const err = el("div", { class: "range-err", hidden: true });
 
     const close = () => document.body.removeChild(overlay);
