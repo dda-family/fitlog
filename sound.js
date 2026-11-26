@@ -3,6 +3,7 @@
  * 짧은 신호음은 시작 시 코드로 WAV를 만들어 쓰고(외부 파일 없음), "얏호~"는 기존 #rest-end-audio(rest-end.mp3) 그대로.
  * 소리마다 뜻은 하나:
  *   prep 준비 삑(3·2·1) · go 시작 땡~ · tick 끝나기 5·4·3·2·1초 전 똑 · step 다음 동작으로 띵 · set 세트 완료 딩-동 · rest 휴식 끝 얏호~
+ * 모든 재생·언락은 canPlaySound() 하나를 지난다(v44 — 오늘 화면의 알림음 켜짐/꺼짐).
  */
 (function () {
   const RATE = 22050;
@@ -52,10 +53,21 @@
       // iOS는 제스처 호출 스택 안의 play()만 허용 → 터치·클릭마다(아직 안 된 요소만) 같은 스택에서 언락
       ["touchend", "click", "keydown"].forEach((t) => document.addEventListener(t, () => this.unlock(), true));
     },
+    // ── 하나의 관문(v44): 운동 알림음 OFF면 언락(음소거 재생)·재생 모두 audio.play()를 아예 부르지 않는다.
+    //    외부 음악(Apple Music·Spotify 등)보다 Fitlog 소리를 앞세우지 않기 위함. 타이머·수행 흐름은 그대로.
     enabled() { const s = window.FitlogApp && window.FitlogApp.settings; return !(s && s.soundEnabled === false); },
+    canPlaySound() { return this.enabled(); },
+    // 사용자가 직접 켜고 끈 상태만 저장(앱이 임의로 바꾸지 않음). 끌 때는 울리는 중인 소리도 바로 멈춤.
+    setEnabled(on) {
+      const A = window.FitlogApp;
+      if (A && A.settings) { A.settings.soundEnabled = !!on; if (A.persistSettings) A.persistSettings(); }
+      if (!on) Object.values(this.els).forEach((a) => { try { if (!a.paused) a.pause(); } catch (_) {} });
+      else this.unlock();   // 켜는 탭(제스처) 안에서 언락 → 다음 이벤트부터 바로 소리
+    },
 
     // 동기 호출 전용(제스처 안). 재생 중인 요소·이미 언락된 요소는 건드리지 않는다.
     unlock() {
+      if (!this.canPlaySound()) return;
       Object.entries(this.els).forEach(([k, a]) => {
         if (this._unlocked.has(k) || this._pending.has(k) || !a.paused) return;
         a.muted = true;
@@ -68,7 +80,7 @@
       });
     },
     play(k) {
-      const a = this.els[k]; if (!a || !this.enabled()) return;
+      const a = this.els[k]; if (!a || !this.canPlaySound()) return;
       this.log.push({ k, at: Date.now() }); if (this.log.length > 50) this.log.shift();
       const go = () => {
         a.muted = false;

@@ -1,6 +1,6 @@
 /* today-session.js — 오늘 운동 세션 전용 조작 (v38, docs/DECISIONS.md)
  * 원칙: 저장된 루틴(routineTemplates·routineGuides)과 오늘의 세션(App.session)을 분리한다.
- *   여기의 조작(오늘에서 삭제 · 오늘 순서 변경 · 오늘 운동 추가)은 App.session만 바꾸고 DB의 루틴은 절대 건드리지 않는다.
+ *   여기의 조작(오늘에서 삭제 · 오늘 순서 변경 · 오늘 운동 추가)은 App.session만 바꾸고 운동 중에는 DB의 루틴을 건드리지 않는다.
  *   영구적인 루틴 수정은 내 운동 › 루틴(my-workout.js)에서만.
  * 세션 구조(선택 필드): session.order = 블록 키 배열, session.removed = { 키: true }
  *   블록 키: "s:<guideId>" 독립 운동 · "g:<groupId>" 연속 세트 · "e:<extraId>" 오늘 추가 운동
@@ -8,6 +8,8 @@
  *   경로 조각 "#<id>"는 배열에서 exercise.id가 같은 원소(오늘 추가 운동)를 가리킨다. 전체 상태 복제는 하지 않는다.
  * 남은 시간·↶↷ 표시: 따로 띠 없이 큰 제목 줄 + 스크롤 시 접힌 헤더(#today-mini) + 다른 탭에선 하단 "오늘" 탭(v39).
  *   접힌 헤더 오른쪽 ⇅ = 순서 변경, ＋ = 운동 추가(v40·v41).
+ * 운동 종료(오늘 운동 저장) 때만: 오늘 추가한 운동·오늘 순서를 루틴에 반영할지 항목별로 묻는다(v44, finishAndSave). 기록 저장이 먼저.
+ * 운동 알림음 켜짐/꺼짐 토글(v44): 설정 soundEnabled 하나, 재생 관문은 sound.js canPlaySound().
  * 진행 중 세션 임시 저장: localStorage(동기 → 갑작스런 새로고침에도 남음). 정식 기록(workoutSessions)·백업과 분리.
  * 당겨서 새로고침 방지: CSS overscroll-behavior + iOS 보조 가드(최상단에서 아래로 당기는 첫 touchmove만 막음).
  * 의존: app.js · my-workout.js(_subHead·_wireReorderDrag·toast·아이콘) · workout-runner.js(routineBlocks·run) — 그 다음에 로드
@@ -305,7 +307,7 @@
       this._snackTimer = setTimeout(() => { try { t.remove(); } catch (_) {} }, 5000);
     },
     // 작은 확인 시트(취소 / 확인 라벨 지정). Promise<boolean>
-    _confirmSheet(msg, okLabel) {
+    _confirmSheet(msg, okLabel, tone) {
       return new Promise((resolve) => {
         const overlay = el("div", { class: "modal-overlay" });
         const done = (v) => { try { overlay.remove(); } catch (_) {} resolve(v); };
@@ -313,12 +315,43 @@
           el("div", { class: "confirm-msg", text: msg }),
           el("div", { class: "modal-actions" }, [
             el("button", { class: "btn btn-ghost", type: "button", onclick: () => done(false) }, "취소"),
-            el("button", { class: "btn danger-btn", type: "button", onclick: () => done(true) }, okLabel || "확인"),
+            el("button", { class: "btn " + (tone === "ok" ? "btn-primary" : "danger-btn"), type: "button", onclick: () => done(true) }, okLabel || "확인"),
           ]),
         ]));
         overlay.addEventListener("click", (e) => { if (e.target === overlay) done(false); });
         document.body.appendChild(overlay);
       });
+    },
+
+    // ───────── 운동 알림음 켜짐/꺼짐(v44) ─────────
+    // 외부 음악을 들으며 운동할 때 바로 끌 수 있게 오늘 화면에 둔다. 상태는 설정(soundEnabled)에 저장 — 사용자가 고른 마지막 상태 유지.
+    soundOn() { return !window.FitlogSound || window.FitlogSound.canPlaySound(); },
+    _soundToggle() {
+      const b = el("button", { class: "btn btn-sm btn-ghost sound-toggle js-sound-toggle", type: "button", onclick: () => this.toggleSound() });
+      this._paintSoundToggle(b);
+      return b;
+    },
+    _paintSoundToggle(b) {
+      const on = this.soundOn();
+      b.textContent = on ? "🔊 알림음 켜짐" : "🔇 알림음 꺼짐";
+      b.classList.toggle("off", !on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.setAttribute("aria-label", on ? "운동 알림음 켜짐 — 누르면 꺼짐" : "운동 알림음 꺼짐 — 누르면 켜짐");
+    },
+    toggleSound() {
+      const on = !this.soundOn();
+      if (window.FitlogSound) window.FitlogSound.setEnabled(on);
+      document.querySelectorAll(".js-sound-toggle").forEach((b) => this._paintSoundToggle(b));
+      this.toast(on ? "운동 알림음을 켰어요" : "운동 알림음을 껐어요 · 타이머는 그대로예요");
+    },
+    // 알림 테스트·소리 미리 듣기: 꺼져 있으면 몰래 켜지 않고 물어본다
+    async testSoundSafe(k) {
+      const S = window.FitlogSound, T = window.FitlogTimer;
+      if (!this.soundOn()) {
+        if (!(await this._confirmSheet("운동 알림음이 꺼져 있어요.\n켜고 테스트할까요?", "켜고 테스트", "ok"))) return;
+        this.toggleSound();
+      }
+      if (k && k !== "rest") { S.unlock(); S.play(k); } else T.testSound();
     },
 
     // ───────── 생략 · 오늘에서 삭제 ─────────
@@ -367,7 +400,7 @@
       };
       const label = (b) => b.type === "group" ? "연속 세트 · " + b.guides.map((g) => (this.exercise(g.exerciseId) || {}).name).join(" + ") : this._blockName(b);
       root.appendChild(this._subHead("오늘 순서 변경", close, el("button", { class: "sub-action", type: "button", onclick: done }, "완료")));
-      root.appendChild(el("div", { class: "rt-hint", text: "아직 시작하지 않은 운동만 옮길 수 있어요. ☰를 끌거나 ▲▼로 바꾸세요. 오늘만 바뀌고 저장된 루틴 순서는 그대로예요." }));
+      root.appendChild(el("div", { class: "rt-hint", text: "아직 시작하지 않은 운동만 옮길 수 있어요(오늘 추가한 운동 포함). ☰를 끌거나 ▲▼로 바꾸세요. 지금은 오늘만 바뀌고, 운동을 마칠 때 루틴에도 반영할지 고를 수 있어요." }));
       const list = el("div", { class: "group-list reorder-list" });
       const icon = this._icon, ICO = this._ICO;
       const paint = () => {
@@ -377,7 +410,7 @@
           const handle = el("span", { class: "ro-handle", "aria-hidden": "true" }, [icon(ICO.grip)]);
           const row = el("div", { class: "gl-row ro-row" + (b.type === "group" ? " ro-group" : ""), "data-id": id }, [
             handle,
-            el("span", { class: "gl-main", text: label(b) }),
+            el("span", { class: "gl-main" }, [document.createTextNode(label(b)), b.type === "extra" ? el("span", { class: "ro-tag", text: "오늘 추가" }) : null]),
             el("button", { class: "ro-btn", type: "button", "aria-label": `${label(b)} 위로`, disabled: i === 0 ? "" : null, onclick: () => { [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]]; paint(); } }, [icon(ICO.up)]),
             el("button", { class: "ro-btn", type: "button", "aria-label": `${label(b)} 아래로`, disabled: i === ids.length - 1 ? "" : null, onclick: () => { [ids[i + 1], ids[i]] = [ids[i], ids[i + 1]]; paint(); } }, [icon(ICO.down)]),
           ]);
@@ -392,6 +425,146 @@
         root.appendChild(el("div", { class: "section-label", style: "margin:18px 2px 6px", text: "제자리 (완료 · 진행 중 · 생략)" }));
         root.appendChild(el("div", { class: "group-list" }, fixed.map((b) => el("div", { class: "gl-row ro-fixed" }, [el("span", { class: "gl-main", text: label(b) })]))));
       }
+    },
+
+    // ───────── 운동 종료 시 루틴 반영 선택(v44) ─────────
+    // 오늘 세션의 변화 중 "새로 추가한 운동"과 "운동 순서"만 루틴 반영 후보. 생략·미실시·오늘에서 삭제·중량/횟수/세트·메모는 대상 아님.
+    // 기준(원본) = 지금 저장된 루틴(routineBlocks). 저장 전엔 루틴을 절대 바꾸지 않고, 사용자가 고른 것만 저장 뒤에 반영한다.
+    _routineDiff() {
+      const s = this.session; if (!s) return null;
+      this._syncOrder();
+      const tid = s.templateId, rBlocks = this.routineBlocks(tid);
+      const key = (b) => (b.type === "group" ? "g:" + b.id : "s:" + b.guide.id);
+      const rKeys = rBlocks.map(key), rSet = new Set(rKeys), byKey = new Map(rBlocks.map((b) => [key(b), b]));
+      // 순서: 오늘에서 삭제한 운동은 빼고, 원본 운동끼리의 상대 순서만 비교(생략은 제자리라 영향 없음)
+      const alive = s.order.filter((k) => rSet.has(k) && !s.removed[k]);
+      const aliveSet = new Set(alive), base = rKeys.filter((k) => aliveSet.has(k));
+      const orderChanged = alive.length >= 2 && !same(alive, base);
+      // 추가: 오늘에서 삭제하지 않았고, 이름이 있고, 실제로 세트를 기록한 운동. 이미 루틴에 있는 운동·같은 운동 중복은 제외.
+      const inRoutine = new Set(this.guidesOf(tid).map((g) => g.exerciseId)), seen = new Set(), adds = [];
+      s.order.forEach((k) => {
+        if (!k.startsWith("e:") || s.removed[k]) return;
+        const x = (s.extras || []).find((e) => "e:" + e.exercise.id === k); if (!x) return;
+        const name = (x.exercise.name || "").trim();
+        if (!name || !(x.res && x.res.workSets && x.res.workSets.length)) return;
+        const link = this._extraLink(x.exercise), id = link ? link.id : "name:" + this._normName(name);
+        if ((link && inRoutine.has(link.id)) || seen.has(id)) return;
+        seen.add(id); adds.push({ key: k, extraId: x.exercise.id, name });
+      });
+      const label = (k) => { const b = byKey.get(k); return b.type === "group" ? b.guides.map((g) => (this.exercise(g.exerciseId) || {}).name).join("+") : (this.exercise(b.guide.exerciseId) || {}).name || "운동"; };
+      return { tid, rKeys, alive, orderChanged, adds, byKey, label,
+        before: rKeys.map(label), after: this._routinePlan({ tid, rKeys, alive, adds }, { order: true, adds: [] }).map(label) };
+    },
+    // 반영 결과의 블록 순서(키 목록). choice = { order: bool, adds: [오늘 추가 키] }
+    //  · 순서 반영: 오늘 살아 있는 원본 운동 자리에 오늘 순서대로 채움. 오늘에서 삭제한 운동은 원래 자리 그대로(루틴에서 빠지지 않음).
+    //  · 추가 반영: 오늘 순서에서 바로 앞에 있던 원본 운동(오늘에서 삭제한 것 포함)·먼저 넣은 추가 운동 뒤에 넣음. 앞에 없으면 맨 앞.
+    //    → 순서를 반영하지 않아도 기존 운동끼리의 상대 순서는 바뀌지 않는다.
+    _routinePlan(d, choice) {
+      const s = this.session, plan = d.rKeys.slice();
+      if (choice.order) {
+        const aliveSet = new Set(d.alive), q = d.alive.slice();
+        for (let i = 0; i < plan.length; i++) if (aliveSet.has(plan[i])) plan[i] = q.shift();
+      }
+      const take = new Set(choice.adds || []);
+      if (!take.size) return plan;
+      const placed = new Set(d.rKeys);
+      s.order.forEach((k, i) => {
+        if (!take.has(k)) return;
+        let at = 0;
+        for (let j = i - 1; j >= 0; j--) { const p = placed.has(s.order[j]) ? plan.indexOf(s.order[j]) : -1; if (p >= 0) { at = p + 1; break; } }
+        plan.splice(at, 0, k); placed.add(k);
+      });
+      return plan;
+    },
+    // 선택 시트. 반환 Promise<null(돌아가기) | { order: bool, adds: [키] }>
+    _routineChangeSheet(d) {
+      const tname = (this.template(d.tid) || {}).name || "루틴";
+      const q = `‘${tname}’`;
+      const onlyAdd = d.adds.length > 0 && !d.orderChanged, onlyOrder = !d.adds.length && d.orderChanged;
+      const orderBox = () => el("div", { class: "rc-order" }, [el("b", { text: "기존" }), el("span", { text: d.before.join(" → ") }), el("b", { text: "오늘" }), el("span", { text: d.after.join(" → ") })]);
+      document.querySelectorAll(".app-snack, .app-toast").forEach((n) => n.remove());   // 시트 위에 겹치지 않게
+      return new Promise((resolve) => {
+        const overlay = el("div", { class: "modal-overlay" });
+        const finish = (v) => { try { overlay.remove(); } catch (_) {} resolve(v); };
+        const body = [], boxes = [];
+        let okLabel;
+        if (onlyAdd && d.adds.length === 1) {
+          body.push(el("div", { class: "rc-title", text: "오늘 새로 추가한 운동이 있어요." }), el("div", { class: "rc-add", text: "+ " + d.adds[0].name }),
+            el("div", { class: "rc-text", text: `이 운동을 ${q} 루틴에도 추가할까요?` }));
+          okLabel = "루틴에 추가";
+        } else if (onlyOrder) {
+          body.push(el("div", { class: "rc-title", text: "오늘 운동 순서를 변경했어요." }), el("div", { class: "rc-text", text: `오늘 순서를 ${q} 루틴에도 반영할까요?` }), orderBox());
+          okLabel = "순서 반영";
+        } else {
+          // 여러 변경: 항목마다 따로 고를 수 있게(기본은 모두 선택)
+          const opt = (val, nodes) => { const cb = el("input", { type: "checkbox", checked: "checked", value: val }); boxes.push(cb); return el("label", { class: "rc-opt" }, [cb, el("div", { class: "rc-opt-body" }, nodes)]); };
+          body.push(el("div", { class: "rc-title", text: onlyAdd ? `오늘 새로 추가한 운동이 ${d.adds.length}개 있어요.` : "오늘 루틴에 변경사항이 있어요." }));
+          d.adds.forEach((a) => body.push(opt("add:" + a.key, [document.createTextNode("새 운동 추가  + " + a.name)])));
+          if (d.orderChanged) body.push(opt("order", [document.createTextNode("오늘 변경한 운동 순서"), orderBox()]));
+          body.push(el("div", { class: "rc-text", text: `선택한 변경사항을 ${q} 루틴에 반영할까요?` }));
+          okLabel = "선택한 변경 반영";
+        }
+        const choice = () => boxes.length
+          ? { order: boxes.some((b) => b.value === "order" && b.checked), adds: boxes.filter((b) => b.checked && b.value.startsWith("add:")).map((b) => b.value.slice(4)) }
+          : { order: d.orderChanged, adds: d.adds.map((a) => a.key) };
+        const okBtn = el("button", { class: "btn btn-primary", type: "button", onclick: () => finish(choice()) }, okLabel);
+        boxes.forEach((b) => b.addEventListener("change", () => { okBtn.disabled = !boxes.some((x) => x.checked); }));
+        overlay.appendChild(el("div", { class: "modal-sheet rc-sheet", role: "dialog", "aria-modal": "true", "aria-label": "루틴 반영 선택" }, [
+          ...body,
+          el("div", { class: "modal-actions" }, [
+            el("button", { class: "btn btn-ghost", type: "button", onclick: () => finish({ order: false, adds: [] }) }, "이번만 사용"),
+            okBtn,
+          ]),
+          el("button", { class: "modal-close", type: "button", onclick: () => finish(null) }, "돌아가기 (아직 저장 안 함)"),
+        ]));
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) finish(null); });
+        document.body.appendChild(overlay);
+      });
+    },
+    // 오늘 운동 저장 버튼: 루틴 반영 후보가 있을 때만 먼저 묻는다. 기록 저장과 루틴 반영은 별개.
+    async finishAndSave() {
+      const d = this.dbReady ? this._routineDiff() : null;
+      if (!d || (!d.orderChanged && !d.adds.length)) return this.saveSession();
+      const choice = await this._routineChangeSheet(d);
+      if (!choice) return;   // 돌아가기 — 아무것도 저장하지 않음
+      return this.saveSession({ diff: d, choice });
+    },
+    // 기록 저장이 끝난 뒤 호출. 실패해도 기록은 이미 저장돼 있다. 반환: 반영한 내용 요약 또는 null
+    async applyRoutineChanges(d, choice, extraIds) {
+      if (!d || !choice || (!choice.order && !(choice.adds || []).length)) return null;
+      const DB = window.FitlogDB.DB;
+      const adds = (choice.adds || []).filter((k) => d.adds.some((a) => a.key === k));
+      const plan = this._routinePlan(d, { order: !!choice.order, adds });
+      const newGuides = {}, added = [];
+      for (const k of adds) {
+        const a = d.adds.find((x) => x.key === k), exId = extraIds && extraIds[a.extraId], ex = exId && this.exercise(exId);
+        if (!ex || this.guideHasExercise(d.tid, ex.id)) continue;
+        newGuides[k] = this._guideForRoutine(d.tid, ex); added.push(ex.name);
+      }
+      // 저장 중 다시 읽은 최신 루틴 항목으로(같은 블록 키)
+      const cur = new Map(this.routineBlocks(d.tid).map((b) => [b.type === "group" ? "g:" + b.id : "s:" + b.guide.id, b]));
+      const guides = plan.flatMap((k) => {
+        if (newGuides[k]) return [newGuides[k]];
+        const b = cur.get(k); if (!b) return [];
+        return b.type === "group" ? b.guides : [b.guide];
+      });
+      for (const g of Object.values(newGuides)) { g.order = guides.indexOf(g) + 1; await DB.put("routineGuides", g); }
+      await this.saveGuideOrder(guides);
+      return { added, order: !!choice.order };
+    },
+    // 루틴에 새로 넣는 항목의 가이드: ① 다른 루틴에 있는 같은 운동의 가이드(목표값 복사) ② 앱 기본(3세트·8~12회·중량 미정, 시간형 30초).
+    // 오늘 실제 수행값(중량·횟수·세트 수)은 가이드로 옮기지 않는다 — 다음엔 "최근 실제 기록"이 입력 기본값이 된다(v42).
+    _guideForRoutine(tid, ex) {
+      const id = "g-" + ex.id + "-" + Date.now();
+      const src = (this.guides || []).find((g) => g.exerciseId === ex.id && g.templateId !== tid);
+      if (src) {
+        const g = { ...JSON.parse(JSON.stringify(src)), id, templateId: tid };
+        delete g.groupId;
+        return g;
+      }
+      const g = { id, templateId: tid, exerciseId: ex.id, order: 0, targetWeight: null, targetSets: 3, minReps: 8, maxReps: 12, optional: false, warmupSuggestions: [], notes: "" };
+      if (this.exMeasureMeta(ex).allowed.includes("duration")) g.targetDurationSeconds = 30;   // 루틴에 추가(addAppExerciseToGuide)와 같은 기본
+      return g;
     },
 
     // ───────── 진행 중 세션 임시 저장 · 복구 ─────────

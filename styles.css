@@ -917,3 +917,26 @@ html, body { overscroll-behavior-y: none; }
 .recovery-sub { font-size: 14px; color: var(--text-dim); margin: 4px 0 18px; font-variant-numeric: tabular-nums; }
 /* 오늘 순서 변경: 제자리 운동 */
 .ro-fixed { opacity: 0.55; }
+
+/* ===== v44: 운동 알림음 켜짐/꺼짐 (오늘 화면 · 설정) ===== */
+.today-actions { flex-wrap: nowrap; }
+.today-actions .select-wrap { flex: 1 1 0; min-width: 0; }
+.today-actions .select-wrap select { width: 100%; max-width: 100%; text-overflow: ellipsis; }
+.sound-toggle, .sound-test { min-height: 44px; flex-shrink: 0; white-space: nowrap; padding: 0 10px; }
+/* 꺼짐은 아이콘·문구(🔇 꺼짐)로 구분하고 테두리 모양도 바꿈 — 색만으로 구분하지 않음 */
+.sound-toggle.off { border: 1px dashed var(--text-faint); color: var(--text-dim); }
+
+/* ===== v44: 운동 종료 시 루틴 반영 선택 ===== */
+.rc-sheet { max-height: 86vh; overflow-y: auto; }
+.rc-title { font-size: 17px; font-weight: 700; margin: 2px 2px 10px; }
+.rc-text { font-size: 15px; line-height: 1.5; color: var(--text); margin: 8px 2px; overflow-wrap: anywhere; }
+.rc-add { font-size: 15px; font-weight: 600; margin: 4px 2px; overflow-wrap: anywhere; }
+.rc-opt { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 10px 12px; margin: 8px 0;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.rc-opt input { width: 22px; height: 22px; flex-shrink: 0; margin: 1px 0 0; accent-color: var(--accent); }
+.rc-opt-body { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.rc-order { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin-top: 6px; font-size: 13px; font-weight: 400; color: var(--text-dim); line-height: 1.45; }
+.rc-order b { font-weight: 600; color: var(--text-faint); white-space: nowrap; }
+.rc-order span { overflow-wrap: anywhere; }
+.rc-sheet .modal-actions .btn { white-space: normal; line-height: 1.25; }
+.ro-tag { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 6px; padding: 1px 5px; vertical-align: 1px; }
